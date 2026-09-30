@@ -1,0 +1,3358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EFB · Aerolink Uganda</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: #0a0f1e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    /* ============================================================
+       LOGIN SCREEN
+    ============================================================ */
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 20%, #142a4d 0%, #0a0f1e 60%, #050810 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 20000;
+      padding: 16px;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+      overflow: hidden;
+    }
+
+    .login-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 15% 30%, rgba(76, 154, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 70%, rgba(27, 142, 75, 0.08) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    .login-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .login-screen .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(76, 154, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(76, 154, 255, 0.04) 1px, transparent 1px);
+      background-size: 50px 50px;
+      mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+      animation: gridDrift 40s linear infinite;
+    }
+
+    @keyframes gridDrift {
+      from { background-position: 0 0; }
+      to { background-position: 50px 50px; }
+    }
+
+    .login-card {
+      position: relative;
+      background: rgba(16, 26, 43, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(76, 154, 255, 0.25);
+      border-radius: 26px;
+      max-width: 400px;
+      width: 100%;
+      max-height: 96vh;
+      overflow-y: auto;
+      padding: 28px 28px 22px;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(76, 154, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      scrollbar-width: none;
+    }
+
+    .login-card::-webkit-scrollbar { display: none; }
+
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .login-card .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 22px;
+      gap: 8px;
+    }
+
+    .login-card .brand-mark {
+      width: 54px;
+      height: 54px;
+      background: linear-gradient(135deg, #1b8e4b 0%, #fcdc04 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 22px;
+      color: #0b111e;
+      letter-spacing: -1px;
+      box-shadow:
+        0 8px 24px rgba(27, 142, 75, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.15),
+        inset 0 2px 0 rgba(255, 255, 255, 0.3);
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { box-shadow: 0 8px 24px rgba(27, 142, 75, 0.35), 0 0 0 1px rgba(255,255,255,0.15), inset 0 2px 0 rgba(255,255,255,0.3); }
+      50% { box-shadow: 0 8px 32px rgba(27, 142, 75, 0.55), 0 0 0 1px rgba(255,255,255,0.2), inset 0 2px 0 rgba(255,255,255,0.3); }
+    }
+
+    .login-card .brand-name {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: #eef5ff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      line-height: 1;
+    }
+
+    .login-card .brand-sub {
+      font-size: 10px;
+      font-weight: 600;
+      color: #6aa9ff;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: -2px;
+    }
+
+    .login-card .brand-country {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fcdc04;
+      letter-spacing: 1.5px;
+      margin-top: 2px;
+    }
+
+    .login-card .brand-country .flag-dot {
+      width: 16px;
+      height: 11px;
+      background: linear-gradient(to bottom, #000 33%, #fcdc04 33% 66%, #d90000 66%);
+      border-radius: 2px;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: inline-block;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .input-group label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #8ba0c2;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding-left: 4px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper .input-icon {
+      position: absolute;
+      left: 14px;
+      color: #4c9aff;
+      font-size: 14px;
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      background: #0d1627;
+      border: 1px solid #2a3e60;
+      border-radius: 12px;
+      padding: 13px 14px 13px 42px;
+      color: #eef5ff;
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      transition: all 0.25s;
+      letter-spacing: 0.3px;
+      font-family: inherit;
+    }
+
+    .input-wrapper input::placeholder {
+      color: #4a5f80;
+      font-weight: 400;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #4c9aff;
+      background: #0f1a2e;
+      box-shadow: 0 0 0 4px rgba(76, 154, 255, 0.12), 0 0 20px rgba(76, 154, 255, 0.15);
+    }
+
+    .input-wrapper input:focus ~ .input-icon { color: #6aa9ff; }
+
+    .input-wrapper .toggle-pw {
+      position: absolute;
+      right: 12px;
+      color: #5f7395;
+      font-size: 14px;
+      cursor: pointer;
+      transition: color 0.2s;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+
+    .input-wrapper .toggle-pw:hover { color: #6aa9ff; }
+
+    .login-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2px;
+      padding: 0 2px;
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-wrap input[type="checkbox"] { display: none; }
+
+    .checkbox-wrap .checkmark {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid #2a3e60;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      background: #0d1627;
+    }
+
+    .checkbox-wrap .checkmark i {
+      font-size: 9px;
+      color: #fff;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.2s;
+    }
+
+    .checkbox-wrap input:checked + .checkmark {
+      background: #1b8e4b;
+      border-color: #1b8e4b;
+    }
+
+    .checkbox-wrap input:checked + .checkmark i {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .checkbox-wrap span.label-text {
+      font-size: 11px;
+      color: #8ba0c2;
+      font-weight: 500;
+    }
+
+    .forgot-link {
+      font-size: 11px;
+      color: #4c9aff;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .forgot-link:hover { color: #6aa9ff; text-decoration: underline; }
+
+    .login-btn {
+      margin-top: 6px;
+      background: linear-gradient(135deg, #1b8e4b 0%, #2aad5e 100%);
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 7px 0 #0e5a2e, 0 10px 25px rgba(27, 142, 75, 0.4);
+      transition: all 0.12s ease;
+      position: relative;
+      overflow: hidden;
+      font-family: inherit;
+    }
+
+    .login-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      transition: left 0.6s;
+    }
+
+    .login-btn:hover::after { left: 100%; }
+
+    .login-btn:hover {
+      background: linear-gradient(135deg, #1fa055 0%, #32c26a 100%);
+      box-shadow: 0 7px 0 #0e5a2e, 0 14px 30px rgba(27, 142, 75, 0.55);
+    }
+
+    .login-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 4px 0 #0e5a2e, 0 5px 15px rgba(27, 142, 75, 0.4);
+    }
+
+    .login-btn:disabled { opacity: 0.7; cursor: wait; transform: none; }
+    .login-btn i { font-size: 14px; }
+
+    .login-error {
+      background: rgba(179, 58, 58, 0.15);
+      border: 1px solid #b33a3a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #ff9b9b;
+      font-size: 12px;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: shake 0.4s ease;
+    }
+
+    .login-error.show { display: flex; }
+    .login-error i { color: #e66b6b; font-size: 14px; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .login-footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid #1e2d46;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9px;
+      color: #4a5f80;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .login-footer i { color: #3f6699; margin-right: 4px; }
+    .login-footer .version { color: #4c9aff; }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       MAIN EFB
+    ============================================================ */
+    .efb-container {
+      max-width: 1280px;
+      width: 100%;
+      background: #111a2b;
+      border-radius: 42px;
+      padding: 18px 18px 24px;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(88, 130, 193, 0.15);
+      border: 1px solid rgba(72, 105, 170, 0.2);
+      display: none;
+      opacity: 0;
+      transform: scale(0.97);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      max-height: 98vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #2a3e60 #0b111e;
+    }
+
+    .efb-container::-webkit-scrollbar { width: 6px; }
+    .efb-container::-webkit-scrollbar-track { background: #0b111e; }
+    .efb-container::-webkit-scrollbar-thumb { background: #2a3e60; border-radius: 6px; }
+
+    .efb-container.visible { display: block; opacity: 1; transform: scale(1); }
+
+    .efb-screen {
+      background: #0b111e;
+      border-radius: 30px;
+      padding: 22px 20px 18px;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 0 #2a3a5a;
+      border: 1px solid #1e2d46;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* TOP BAR */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1f2c41;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .airline-logo { display: flex; align-items: center; gap: 10px; }
+
+    .airline-logo .logo-mark {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #1b8e4b, #fcdc04);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      color: #0b111e;
+      box-shadow: 0 4px 15px rgba(27, 142, 75, 0.4);
+      letter-spacing: -0.5px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .airline-logo .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+
+    .airline-logo .logo-text .name {
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 1.5px;
+      color: #eef5ff;
+      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .airline-logo .logo-text .tagline {
+      font-size: 10px;
+      font-weight: 600;
+      color: #6aa9ff;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+    }
+
+    .pilot-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #0d1627;
+      padding: 6px 14px 6px 8px;
+      border-radius: 40px;
+      border: 1px solid #233250;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pilot-badge:hover { border-color: #4c9aff; background: #162236; }
+
+    .pilot-badge.admin-badge { border-color: #fcdc04; background: rgba(252, 220, 4, 0.08); }
+    .pilot-badge.admin-badge:hover { border-color: #fcdc04; background: rgba(252, 220, 4, 0.15); }
+
+    .pilot-badge .avatar {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #4c9aff, #1b8e4b);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      border: 2px solid #0b111e;
+      box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.3);
+    }
+
+    .pilot-badge.admin-badge .avatar {
+      background: linear-gradient(135deg, #fcdc04, #b37b1a);
+      box-shadow: 0 0 0 2px rgba(252, 220, 4, 0.4);
+    }
+
+    .pilot-badge .pilot-info { display: flex; flex-direction: column; line-height: 1.2; }
+
+    .pilot-badge .pilot-info .pilot-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #eef5ff;
+    }
+
+    .pilot-badge .pilot-info .pilot-role {
+      font-size: 10px;
+      font-weight: 600;
+      color: #6aa9ff;
+      letter-spacing: 0.5px;
+    }
+
+    .pilot-badge.admin-badge .pilot-info .pilot-role { color: #fcdc04; }
+
+    .pilot-badge .logout-icon {
+      color: #5f7395;
+      font-size: 13px;
+      margin-left: 4px;
+      transition: color 0.2s;
+    }
+
+    .pilot-badge:hover .logout-icon { color: #e66b6b; }
+
+    .flight-info {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: #0d1627;
+      padding: 8px 18px;
+      border-radius: 40px;
+      border: 1px solid #233250;
+      box-shadow: inset 0 1px 4px #00000055;
+      flex-wrap: wrap;
+    }
+
+    .flight-info .route {
+      font-weight: 600;
+      font-size: 15px;
+      color: #bdd3ff;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flight-info .route i { color: #4c9aff; font-size: 15px; }
+
+    .flight-info .time {
+      color: #8aa3cc;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .flight-info .time i { color: #4c9aff; font-size: 13px; }
+
+    .status-badge {
+      background: #1b8e4b;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 12px;
+      color: white;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 12px rgba(27, 142, 75, 0.6);
+      border: 1px solid #30c56e;
+      white-space: nowrap;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .status-badge.paused {
+      background: #b37b1a;
+      border-color: #e6a83c;
+      box-shadow: 0 0 12px rgba(230, 168, 60, 0.6);
+    }
+
+    /* TAB NAVIGATION */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      background: #0d1627;
+      padding: 6px;
+      border-radius: 16px;
+      border: 1px solid #1e2d46;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tab-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 90px;
+      background: transparent;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      color: #8ba0c2;
+      font-weight: 600;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn i { font-size: 13px; }
+
+    .tab-btn:hover { background: #162236; color: #d0e0ff; }
+
+    .tab-btn.active {
+      background: #1d3557;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(76, 154, 255, 0.3);
+      border: 1px solid #4c9aff;
+    }
+
+    .tab-btn.admin-tab.active {
+      background: rgba(252, 220, 4, 0.15);
+      color: #fcdc04;
+      border-color: #fcdc04;
+      box-shadow: 0 0 15px rgba(252, 220, 4, 0.3);
+    }
+
+    .tab-btn.admin-tab i { color: #fcdc04; }
+    .tab-btn.admin-tab:hover { color: #fcdc04; background: rgba(252, 220, 4, 0.08); }
+
+    /* PAGE CONTAINER */
+    .page-container {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .page-container.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* MAIN GRID */
+    .efb-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr 1.2fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: #101a2b;
+      border-radius: 22px;
+      padding: 16px 16px 14px;
+      border: 1px solid #24334d;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.7), inset 0 1px 0 #2c405e;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      color: #b0c8f0;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .card-header i { color: #4c9aff; font-size: 15px; }
+
+    .card-header .clickable-icon {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .card-header .clickable-icon:hover { transform: rotate(90deg); color: #6aa9ff; }
+
+    /* WEATHER */
+    .weather-content { display: flex; flex-direction: column; gap: 8px; }
+
+    .weather-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px;
+      border-bottom: 1px dashed #1e2e47;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .weather-row:hover { background: #162236; }
+    .weather-row:last-child { border-bottom: none; }
+
+    .weather-label { color: #7c92b5; font-size: 13px; font-weight: 500; }
+
+    .weather-value {
+      color: #e1ecff;
+      font-weight: 600;
+      font-size: 14px;
+      background: #0b1422;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #2a3e60;
+      font-family: 'Inter', monospace;
+      transition: all 0.2s;
+    }
+
+    .weather-value.updated {
+      border-color: #4c9aff;
+      box-shadow: 0 0 12px rgba(76, 154, 255, 0.4);
+    }
+
+    .wind-icon { color: #4c9aff; margin-right: 6px; }
+
+    /* PERFORMANCE */
+    .perf-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    .perf-label { color: #8ba0c2; font-size: 13px; }
+
+    .perf-value {
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+      background: #0d1627;
+      padding: 4px 12px;
+      border-radius: 30px;
+      border: 1px solid #2e4468;
+      transition: all 0.2s;
+    }
+
+    .perf-value.updated {
+      border-color: #4c9aff;
+      box-shadow: 0 0 12px rgba(76, 154, 255, 0.3);
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #1c2a42;
+      border-radius: 6px;
+      margin: 6px 0 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: height 0.2s;
+    }
+
+    .progress-bar:hover { height: 10px; }
+
+    .progress-fill {
+      height: 100%;
+      width: 78%;
+      background: linear-gradient(90deg, #2b8cff, #6aa9ff);
+      border-radius: 6px;
+      box-shadow: 0 0 8px #3d8aff;
+      transition: width 0.6s ease, background 0.3s;
+    }
+
+    /* CHECKLIST */
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 6px;
+      border-bottom: 1px solid #1b273d;
+      color: #d2e0fa;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      border-radius: 8px;
+    }
+
+    .checklist-item:hover { background: #162236; }
+    .checklist-item:last-child { border-bottom: none; }
+
+    .checklist-item i {
+      color: #1b8e4b;
+      font-size: 17px;
+      width: 22px;
+      text-align: center;
+    }
+
+    .checklist-item .pending { color: #ffb347; }
+    .checklist-item .inactive { color: #43587a; }
+    .checklist-item .task-text { flex: 1; }
+
+    .checklist-item .task-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #0d1627;
+      color: #8ba0c2;
+      border: 1px solid #2a3e60;
+    }
+
+    .checklist-item.checked .task-status {
+      background: #1b3a2a;
+      color: #6fe09a;
+      border-color: #2b8e4b;
+    }
+
+    /* MANUALS */
+    .manuals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .manual-card {
+      background: #101a2b;
+      border-radius: 20px;
+      padding: 16px;
+      border: 1px solid #24334d;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .manual-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: #4c9aff;
+      opacity: 0.7;
+    }
+
+    .manual-card.airline-specific::before { background: linear-gradient(180deg, #1b8e4b, #fcdc04); }
+
+    .manual-card:hover {
+      transform: translateY(-3px);
+      border-color: #4c9aff;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(76, 154, 255, 0.2);
+    }
+
+    .manual-card .manual-icon {
+      font-size: 24px;
+      color: #4c9aff;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .manual-card.airline-specific .manual-icon { color: #fcdc04; }
+
+    .manual-card h3 {
+      color: #eef5ff;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .manual-card p {
+      color: #7c92b5;
+      font-size: 11px;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .manual-card .manual-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: #5f7395;
+      font-weight: 600;
+    }
+
+    .manual-card .manual-tag {
+      background: #1d3557;
+      color: #6aa9ff;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+    }
+
+    .manual-card.airline-specific .manual-tag {
+      background: #1b3a2a;
+      color: #6fe09a;
+      border: 1px solid #2b8e4b;
+    }
+
+    /* SECTION HEADER */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-header h2 {
+      color: #eef5ff;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-header h2 i { color: #4c9aff; }
+
+    .section-header .count-badge {
+      background: #1d3557;
+      color: #6aa9ff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid #2a3e60;
+    }
+
+    /* ============================================================
+       ADMIN PANEL
+    ============================================================ */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(252, 220, 4, 0.08), rgba(179, 123, 26, 0.08));
+      border: 1px solid rgba(252, 220, 4, 0.3);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .admin-header .admin-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .admin-header .admin-title .admin-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #fcdc04, #b37b1a);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #0b111e;
+      box-shadow: 0 4px 15px rgba(252, 220, 4, 0.3);
+    }
+
+    .admin-header .admin-title h2 {
+      color: #fcdc04;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .admin-header .admin-title h2 small {
+      color: #8ba0c2;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Admin stats */
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .admin-stat {
+      background: #101a2b;
+      border: 1px solid #24334d;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .admin-stat:hover { border-color: #4c9aff; transform: translateY(-2px); }
+
+    .admin-stat .stat-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .admin-stat .stat-info { display: flex; flex-direction: column; line-height: 1.3; }
+
+    .admin-stat .stat-info .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: #eef5ff;
+    }
+
+    .admin-stat .stat-info .stat-label {
+      font-size: 10px;
+      color: #7c92b5;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Admin toolbar */
+    .admin-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .admin-toolbar .search-box {
+      position: relative;
+      flex: 1;
+      max-width: 320px;
+      min-width: 200px;
+    }
+
+    .admin-toolbar .search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #5f7395;
+      font-size: 13px;
+    }
+
+    .admin-toolbar .search-box input {
+      width: 100%;
+      background: #0d1627;
+      border: 1px solid #2a3e60;
+      border-radius: 12px;
+      padding: 10px 14px 10px 38px;
+      color: #eef5ff;
+      font-size: 13px;
+      font-weight: 500;
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .admin-toolbar .search-box input:focus {
+      border-color: #4c9aff;
+      box-shadow: 0 0 0 3px rgba(76, 154, 255, 0.12);
+    }
+
+    .admin-toolbar .search-box input::placeholder { color: #4a5f80; }
+
+    .admin-btn {
+      background: linear-gradient(135deg, #1b8e4b, #2aad5e);
+      border: none;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 0 #0e5a2e, 0 6px 15px rgba(27, 142, 75, 0.3);
+      transition: all 0.12s ease;
+      font-family: inherit;
+    }
+
+    .admin-btn:hover {
+      background: linear-gradient(135deg, #1fa055, #32c26a);
+      box-shadow: 0 4px 0 #0e5a2e, 0 8px 20px rgba(27, 142, 75, 0.45);
+    }
+
+    .admin-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #0e5a2e, 0 3px 10px rgba(27, 142, 75, 0.3); }
+
+    .admin-btn.gold {
+      background: linear-gradient(135deg, #fcdc04, #e6a83c);
+      color: #0b111e;
+      box-shadow: 0 4px 0 #8a6a0a, 0 6px 15px rgba(252, 220, 4, 0.3);
+    }
+
+    .admin-btn.gold:hover {
+      background: linear-gradient(135deg, #ffe44d, #f0b84a);
+      box-shadow: 0 4px 0 #8a6a0a, 0 8px 20px rgba(252, 220, 4, 0.45);
+    }
+
+    .admin-btn.gold:active { box-shadow: 0 2px 0 #8a6a0a, 0 3px 10px rgba(252, 220, 4, 0.3); }
+
+    /* Route table */
+    .route-table-wrap {
+      background: #101a2b;
+      border: 1px solid #24334d;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .route-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .route-table thead {
+      background: #0d1627;
+      border-bottom: 2px solid #2a3e60;
+    }
+
+    .route-table th {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      color: #7c92b5;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .route-table td {
+      padding: 13px 16px;
+      color: #d0e0ff;
+      border-bottom: 1px solid #1b273d;
+      vertical-align: middle;
+    }
+
+    .route-table tbody tr {
+      transition: background 0.15s;
+    }
+
+    .route-table tbody tr:hover { background: #162236; }
+    .route-table tbody tr:last-child td { border-bottom: none; }
+
+    .route-table .route-pair-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      color: #eef5ff;
+      letter-spacing: 0.5px;
+    }
+
+    .route-table .route-pair-cell i { color: #4c9aff; font-size: 12px; }
+
+    .route-table .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+
+    .route-table .badge.domestic { background: rgba(179, 123, 26, 0.2); color: #e6a83c; border: 1px solid #b37b1a; }
+    .route-table .badge.regional { background: rgba(27, 142, 75, 0.2); color: #6fe09a; border: 1px solid #1b8e4b; }
+    .route-table .badge.international { background: rgba(76, 154, 255, 0.2); color: #6aa9ff; border: 1px solid #4c9aff; }
+    .route-table .badge.charter { background: rgba(160, 107, 255, 0.2); color: #b08aff; border: 1px solid #6b3fa0; }
+
+    .route-table .action-cell {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .route-table .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #2a3e60;
+      background: #0d1627;
+      color: #8ba0c2;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .route-table .icon-btn:hover { border-color: #4c9aff; color: #4c9aff; background: #162236; }
+    .route-table .icon-btn.danger:hover { border-color: #e66b6b; color: #e66b6b; background: rgba(230, 107, 107, 0.1); }
+
+    /* Route form modal */
+    .route-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .route-form .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .route-form .form-field.full-width { grid-column: span 2; }
+
+    .route-form .form-field label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #8ba0c2;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .route-form .form-field input,
+    .route-form .form-field select {
+      background: #0d1627;
+      border: 1px solid #2a3e60;
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: #eef5ff;
+      font-size: 13px;
+      font-weight: 500;
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+      width: 100%;
+    }
+
+    .route-form .form-field input:focus,
+    .route-form .form-field select:focus {
+      border-color: #4c9aff;
+      box-shadow: 0 0 0 3px rgba(76, 154, 255, 0.12);
+    }
+
+    .route-form .form-field input::placeholder { color: #4a5f80; }
+
+    .route-form .form-field .coord-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .route-form .form-actions {
+      grid-column: span 2;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 8px;
+      padding-top: 14px;
+      border-top: 1px solid #1e2d46;
+    }
+
+    .route-form .form-actions button {
+      padding: 11px 22px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid #2a3e60;
+      background: #162236;
+      color: #d0e0ff;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      font-family: inherit;
+    }
+
+    .route-form .form-actions button:hover { background: #1c2b46; border-color: #4c9aff; }
+
+    .route-form .form-actions button.primary {
+      background: linear-gradient(135deg, #1b8e4b, #2aad5e);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 0 #0e5a2e, 0 6px 15px rgba(27, 142, 75, 0.3);
+    }
+
+    .route-form .form-actions button.primary:hover {
+      background: linear-gradient(135deg, #1fa055, #32c26a);
+      box-shadow: 0 4px 0 #0e5a2e, 0 8px 20px rgba(27, 142, 75, 0.45);
+    }
+
+    /* ============================================================
+       LIVE MAP
+    ============================================================ */
+    .map-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+      min-height: 560px;
+    }
+
+    .map-panel {
+      background: #0d1627;
+      border-radius: 20px;
+      border: 1px solid #24334d;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    .map-panel .map-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: #b0c8f0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .map-panel .map-title i { color: #4c9aff; }
+
+    #liveMap {
+      width: 100%;
+      height: 480px;
+      border-radius: 14px;
+      background: #0f1a2e;
+      border: 1px solid #1e2d46;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .leaflet-container { background: #0f1a2e !important; font-family: 'Inter', sans-serif !important; }
+    .leaflet-tile-pane { filter: brightness(0.85) contrast(1.05) saturate(0.9); }
+    .leaflet-control-zoom a { background: #0d1627 !important; color: #bdd3ff !important; border: 1px solid #2a3e60 !important; font-weight: 700 !important; }
+    .leaflet-control-zoom a:hover { background: #1d3557 !important; color: #fff !important; }
+    .leaflet-control-attribution { background: rgba(11, 17, 30, 0.85) !important; color: #5f7395 !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: #4c9aff !important; }
+
+    .leaflet-popup-content-wrapper {
+      background: #101a2b !important;
+      color: #eef1ff !important;
+      border: 1px solid #4c9aff !important;
+      border-radius: 12px !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
+    }
+
+    .leaflet-popup-tip { background: #101a2b !important; border: 1px solid #4c9aff !important; }
+    .leaflet-popup-content { margin: 12px 16px !important; font-size: 12px !important; line-height: 1.6 !important; }
+    .leaflet-popup-content b { color: #fcdc04 !important; font-size: 13px; display: block; margin-bottom: 4px; }
+    .leaflet-popup-close-button { color: #8ba0c2 !important; font-size: 18px !important; }
+
+    .aircraft-marker {
+      background: #4c9aff;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 15px rgba(76, 154, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 14px;
+      animation: pulseMarker 2s infinite;
+    }
+
+    @keyframes pulseMarker {
+      0%, 100% { box-shadow: 0 0 15px rgba(76, 154, 255, 0.8); }
+      50% { box-shadow: 0 0 25px rgba(76, 154, 255, 1); }
+    }
+
+    .wx-legend {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      background: rgba(11, 17, 30, 0.92);
+      border: 1px solid #2a3e60;
+      border-radius: 12px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+      z-index: 500;
+    }
+
+    .wx-legend .legend-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: #8ba0c2;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .wx-legend .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: #b0c8f0;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .wx-legend .legend-item:last-child { margin-bottom: 0; }
+
+    .wx-legend .legend-swatch {
+      width: 14px;
+      height: 10px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(27, 142, 75, 0.15);
+      border: 1px solid #1b8e4b;
+      color: #6fe09a;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .live-badge .live-dot {
+      width: 6px;
+      height: 6px;
+      background: #1b8e4b;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* FORECAST PANEL */
+    .forecast-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 560px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #2a3e60 transparent;
+      padding-right: 4px;
+    }
+
+    .forecast-panel::-webkit-scrollbar { width: 4px; }
+    .forecast-panel::-webkit-scrollbar-thumb { background: #2a3e60; border-radius: 4px; }
+
+    .forecast-card {
+      background: #101a2b;
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid #24334d;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .forecast-card:hover {
+      border-color: #4c9aff;
+      transform: translateX(3px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7), 0 0 15px rgba(76, 154, 255, 0.15);
+    }
+
+    .forecast-card.active {
+      border-color: #4c9aff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7), 0 0 20px rgba(76, 154, 255, 0.3);
+      background: #0f1e33;
+    }
+
+    .forecast-card .fc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .forecast-card .fc-code {
+      font-size: 15px;
+      font-weight: 800;
+      color: #eef5ff;
+      letter-spacing: 1px;
+    }
+
+    .forecast-card .fc-name {
+      font-size: 10px;
+      color: #7c92b5;
+      font-weight: 500;
+    }
+
+    .forecast-card .fc-condition { font-size: 22px; color: #4c9aff; }
+
+    .forecast-card .fc-temp {
+      font-size: 22px;
+      font-weight: 800;
+      color: #eef5ff;
+      line-height: 1;
+    }
+
+    .forecast-card .fc-temp span { font-size: 12px; font-weight: 600; color: #8ba0c2; }
+
+    .forecast-card .fc-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #1e2d46;
+    }
+
+    .forecast-card .fc-detail { display: flex; flex-direction: column; gap: 2px; }
+
+    .forecast-card .fc-detail .label {
+      font-size: 9px;
+      color: #5f7395;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .forecast-card .fc-detail .value {
+      font-size: 12px;
+      color: #d0e0ff;
+      font-weight: 700;
+    }
+
+    .hourly-strip {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .hourly-strip::-webkit-scrollbar { display: none; }
+
+    .hourly-item {
+      flex: 0 0 auto;
+      background: #0d1627;
+      border: 1px solid #1e2d46;
+      border-radius: 10px;
+      padding: 8px 10px;
+      text-align: center;
+      min-width: 58px;
+    }
+
+    .hourly-item .hr-time {
+      font-size: 9px;
+      color: #7c92b5;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .hourly-item .hr-icon { font-size: 14px; color: #4c9aff; margin-bottom: 4px; }
+    .hourly-item .hr-temp { font-size: 11px; color: #eef5ff; font-weight: 700; }
+
+    .forecast-detail {
+      background: #0d1627;
+      border: 1px solid #2a3e60;
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 4px;
+    }
+
+    .forecast-detail .fd-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #8ba0c2;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .forecast-detail .fd-title i { color: #4c9aff; }
+
+    .forecast-detail .fd-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #1e2d46;
+      font-size: 12px;
+    }
+
+    .forecast-detail .fd-row:last-child { border-bottom: none; }
+    .forecast-detail .fd-row .fd-label { color: #7c92b5; }
+    .forecast-detail .fd-row .fd-val { color: #eef1ff; font-weight: 600; }
+
+    /* WEATHER FORECAST PAGE */
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .radar-panel {
+      background: #0d1627;
+      border: 1px solid #2a3e60;
+      border-radius: 20px;
+      padding: 16px;
+      position: relative;
+    }
+
+    .radar-panel .radar-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #b0c8f0;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .radar-panel .radar-title i { color: #4c9aff; }
+
+    .radar-svg {
+      width: 100%;
+      height: 220px;
+      background: radial-gradient(circle at center, #0a1422 0%, #050810 100%);
+      border-radius: 14px;
+      border: 1px solid #1e2d46;
+      display: block;
+    }
+
+    /* BUTTONS */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 90px;
+      background: #162236;
+      border: none;
+      border-radius: 40px;
+      padding: 13px 12px;
+      font-weight: 600;
+      font-size: 12px;
+      color: #d0e0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid #2e4164;
+      box-shadow: 0 6px 0 #0b101c, 0 2px 12px rgba(0, 0, 0, 0.5);
+      transition: all 0.1s ease;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      font-family: inherit;
+    }
+
+    .btn i { color: #4c9aff; font-size: 15px; }
+    .btn:hover { background: #1c2b46; border-color: #4069a3; }
+    .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #0b101c, 0 2px 12px black; }
+    .btn.active { background: #1d3557; border-color: #4c9aff; box-shadow: 0 4px 0 #0b101c, 0 0 20px rgba(76, 154, 255, 0.3); }
+    .btn.active i { color: #ffffff; }
+
+    /* BOTTOM INFO */
+    .bottom-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 8px 0;
+      color: #5f7395;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .bottom-info i { color: #3f6699; margin-right: 6px; }
+
+    .bottom-info .live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #1b8e4b;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1d3557;
+      color: #e1ecff;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      border: 1px solid #4c9aff;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 30000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 90vw;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast i { color: #4c9aff; }
+    .toast.gold { border-color: #fcdc04; }
+    .toast.gold i { color: #fcdc04; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 25000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      padding: 20px;
+    }
+
+    .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+    .modal-box {
+      background: #0b111e;
+      border: 1px solid #2e4164;
+      border-radius: 24px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9);
+      transform: scale(0.95);
+      transition: transform 0.3s;
+    }
+
+    .modal-overlay.active .modal-box { transform: scale(1); }
+
+    .modal-box h2 {
+      color: #eef5ff;
+      font-size: 19px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-box h2 i { color: #4c9aff; }
+
+    .modal-box .modal-close {
+      float: right;
+      background: #162236;
+      border: 1px solid #2e4164;
+      color: #8ba0c2;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .modal-box .modal-close:hover { background: #2e4164; color: white; }
+
+    .modal-box .modal-content {
+      color: #b0c8f0;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-top: 16px;
+    }
+
+    .modal-box .modal-content h3 {
+      color: #eef5ff;
+      font-size: 15px;
+      margin: 18px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1e2d46;
+    }
+
+    .modal-box .modal-content ul { padding-left: 20px; margin: 8px 0; }
+    .modal-box .modal-content li { margin-bottom: 6px; }
+    .modal-box .modal-content .highlight { color: #6aa9ff; font-weight: 600; }
+    .modal-box .modal-content .aerolink-highlight { color: #fcdc04; font-weight: 700; }
+
+    /* RESPONSIVE */
+    @media (max-width: 1000px) {
+      .map-layout { grid-template-columns: 1fr; }
+      .forecast-panel { max-height: none; }
+    }
+
+    @media (max-width: 900px) {
+      .efb-grid { grid-template-columns: 1fr; }
+      .flight-info { justify-content: center; }
+      .top-bar { justify-content: center; }
+      #liveMap { height: 380px; }
+      .route-form { grid-template-columns: 1fr; }
+      .route-form .form-field.full-width { grid-column: span 1; }
+      .route-form .form-actions { grid-column: span 1; }
+    }
+
+    @media (max-width: 700px) {
+      .route-table-wrap { overflow-x: auto; }
+      .route-table { min-width: 700px; }
+    }
+
+    @media (max-width: 480px) {
+      .efb-container { padding: 8px; }
+      .efb-screen { padding: 16px 12px; }
+      .flight-info { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .status-badge { align-self: flex-start; }
+      .btn { font-size: 10px; padding: 10px 6px; }
+      .btn i { font-size: 12px; }
+      .tab-btn { font-size: 9px; padding: 8px 6px; }
+      .tab-btn i { font-size: 11px; }
+      .airline-logo .logo-text .name { font-size: 15px; }
+      .login-card { padding: 22px 20px 18px; border-radius: 20px; }
+      .login-card .brand-mark { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; }
+      .login-card .brand-name { font-size: 18px; letter-spacing: 2.5px; }
+      .login-card .brand-sub { font-size: 9px; letter-spacing: 2.5px; }
+      .login-card .brand-country { font-size: 9px; }
+      #liveMap { height: 300px; }
+      .hourly-item { min-width: 50px; padding: 6px 8px; }
+      .radar-svg { height: 160px; }
+    }
+
+    @media (max-height: 700px) {
+      .login-card { padding: 20px 22px 16px; }
+      .login-card .brand { margin-bottom: 16px; gap: 6px; }
+      .login-card .brand-mark { width: 46px; height: 46px; font-size: 19px; border-radius: 13px; }
+      .login-card .brand-name { font-size: 18px; }
+      .login-form { gap: 10px; }
+      .input-wrapper input { padding: 11px 12px 11px 40px; font-size: 13px; }
+      .login-btn { padding: 12px; font-size: 12px; }
+      .login-footer { margin-top: 14px; padding-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="bg-grid"></div>
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">AL</div>
+        <div class="brand-name">AEROLINK</div>
+        <div class="brand-sub">Electronic Flight Bag</div>
+        <div class="brand-country">
+          <span class="flag-dot"></span>
+          UGANDA · SINCE 2001
+        </div>
+      </div>
+
+      <form class="login-form" id="loginForm" autocomplete="off">
+        <div class="login-error" id="loginError">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span id="loginErrorMsg">Invalid credentials. Please try again.</span>
+        </div>
+
+        <div class="input-group">
+          <label for="pilotId">Pilot ID / Email</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" id="pilotId" placeholder="Enter your Pilot ID" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="toggle-pw" id="togglePassword" title="Show password">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-options">
+          <label class="checkbox-wrap">
+            <input type="checkbox" id="rememberMe" checked>
+            <span class="checkmark"><i class="fas fa-check"></i></span>
+            <span class="label-text">Remember this device</span>
+          </label>
+          <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn">
+          <i class="fas fa-sign-in-alt"></i>
+          <span id="loginBtnText">Sign In to EFB</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <span><i class="fas fa-shield-alt"></i> Secure · Encrypted</span>
+        <span class="version">v4.5.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN EFB -->
+  <div class="efb-container" id="efbContainer">
+    <div class="efb-screen">
+
+      <!-- TOP BAR -->
+      <div class="top-bar">
+        <div class="airline-logo">
+          <div class="logo-mark">AL</div>
+          <div class="logo-text">
+            <span class="name">AEROLINK</span>
+            <span class="tagline">Uganda · Since 2001</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div class="flight-info">
+            <div class="route">
+              <i class="fas fa-map-pin"></i> <span id="currentRoute">EBB → LHR</span>
+            </div>
+            <div class="time" id="clockDisplay">
+              <i class="far fa-clock"></i> 07:45 UTC
+            </div>
+            <div class="status-badge" id="statusBadge">
+              <i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i> EN ROUTE
+            </div>
+          </div>
+
+          <div class="pilot-badge" id="pilotBadge" title="Click to logout">
+            <div class="avatar" id="pilotAvatar">CP</div>
+            <div class="pilot-info">
+              <span class="pilot-name" id="pilotName">Captain</span>
+              <span class="pilot-role" id="pilotRole">PIC · A330</span>
+            </div>
+            <i class="fas fa-sign-out-alt logout-icon"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB NAVIGATION -->
+      <div class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-page="dashboard"><i class="fas fa-gauge-high"></i> Dashboard</button>
+        <button class="tab-btn" data-page="map"><i class="fas fa-map"></i> Live Map</button>
+        <button class="tab-btn" data-page="forecast"><i class="fas fa-cloud-sun-rain"></i> Live Weather</button>
+        <button class="tab-btn" data-page="manuals"><i class="fas fa-book"></i> Manuals</button>
+        <!-- Admin tab inserted by JS -->
+      </div>
+
+      <!-- ===== PAGE: DASHBOARD ===== -->
+      <div class="page-container active" id="page-dashboard">
+        <div class="efb-grid">
+          <div class="card" id="cardWeather">
+            <div class="card-header">
+              <span><i class="fas fa-cloud-sun"></i> &nbsp; DESTINATION WX</span>
+              <i class="fas fa-sync-alt clickable-icon" id="refreshWxBtn" title="Refresh weather"></i>
+            </div>
+            <div class="weather-content">
+              <div class="weather-row">
+                <span class="weather-label">METAR</span>
+                <span class="weather-value" id="metarValue" style="font-size: 11px; font-family: monospace;">HUEN 301750Z 27012KT 9999 SCT035 26/18 Q1013</span>
+              </div>
+              <div class="weather-row">
+                <span class="weather-label"><i class="fas fa-wind wind-icon"></i> Wind</span>
+                <span class="weather-value" id="windValue">270° / 12 kt</span>
+              </div>
+              <div class="weather-row">
+                <span class="weather-label"><i class="fas fa-eye"></i> Visibility</span>
+                <span class="weather-value" id="visValue">10 km</span>
+              </div>
+              <div class="weather-row">
+                <span class="weather-label"><i class="fas fa-temperature-high"></i> Temp / Dew</span>
+                <span class="weather-value" id="tempValue">26°C / 18°C</span>
+              </div>
+              <div class="weather-row">
+                <span class="weather-label"><i class="fas fa-gauge-high"></i> QNH</span>
+                <span class="weather-value" id="qnhValue">1013 hPa</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="cardPerf">
+            <div class="card-header">
+              <span><i class="fas fa-gas-pump"></i> &nbsp; FUEL / PERF</span>
+              <i class="fas fa-chart-line" style="opacity: 0.6;"></i>
+            </div>
+            <div class="perf-item">
+              <span class="perf-label">Block fuel</span>
+              <span class="perf-value" id="blockFuel">14.2 t</span>
+            </div>
+            <div class="progress-bar" id="fuelProgressBar" title="Click to simulate fuel burn">
+              <div class="progress-fill" id="fuelProgressFill" style="width: 82%;"></div>
+            </div>
+            <div class="perf-item">
+              <span class="perf-label">Trip fuel</span>
+              <span class="perf-value" id="tripFuel">9.8 t</span>
+            </div>
+            <div class="perf-item">
+              <span class="perf-label">T/O weight</span>
+              <span class="perf-value" id="toWeight">82.5 t</span>
+            </div>
+            <div class="perf-item">
+              <span class="perf-label">V1 / VR / V2</span>
+              <span class="perf-value" style="font-size: 14px;" id="vSpeeds">145 / 151 / 156</span>
+            </div>
+            <div class="perf-item">
+              <span class="perf-label">CG %</span>
+              <span class="perf-value" id="cgValue">31.8%</span>
+            </div>
+          </div>
+
+          <div class="card" id="cardChecklist">
+            <div class="card-header">
+              <span><i class="fas fa-list-check"></i> &nbsp; APPROACH CHECKLIST</span>
+              <i class="fas fa-chevron-down" style="opacity: 0.6; font-size: 12px;"></i>
+            </div>
+            <div id="checklistContainer">
+              <div class="checklist-item checked" data-task="gear">
+                <i class="fas fa-check-circle"></i>
+                <span class="task-text">Landing gear ................ DOWN</span>
+                <span class="task-status">DONE</span>
+              </div>
+              <div class="checklist-item checked" data-task="flaps">
+                <i class="fas fa-check-circle"></i>
+                <span class="task-text">Flaps ........................ 30</span>
+                <span class="task-status">DONE</span>
+              </div>
+              <div class="checklist-item checked" data-task="speedbrake">
+                <i class="fas fa-check-circle"></i>
+                <span class="task-text">Speedbrake ............... ARMED</span>
+                <span class="task-status">DONE</span>
+              </div>
+              <div class="checklist-item checked" data-task="autobrake">
+                <i class="fas fa-check-circle"></i>
+                <span class="task-text">Autobrake .................. 3</span>
+                <span class="task-status">DONE</span>
+              </div>
+              <div class="checklist-item unchecked" data-task="lights">
+                <i class="fas fa-clock pending"></i>
+                <span class="task-text">Landing lights ........... ON</span>
+                <span class="task-status">PENDING</span>
+              </div>
+              <div class="checklist-item unchecked" data-task="cabin">
+                <i class="fas fa-circle inactive" style="font-size: 14px;"></i>
+                <span class="task-text">Cabin report ............... STANDBY</span>
+                <span class="task-status">STANDBY</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: LIVE MAP ===== -->
+      <div class="page-container" id="page-map">
+        <div class="section-header">
+          <h2>
+            <i class="fas fa-map-marked-alt"></i> Live Route Map
+            <span class="live-badge"><span class="live-dot"></span> LIVE</span>
+          </h2>
+          <span class="count-badge" id="mapRouteCount">10 routes</span>
+        </div>
+
+        <div class="map-layout">
+          <div class="map-panel">
+            <div class="map-title">
+              <span><i class="fas fa-globe-africa"></i> East Africa Airspace · Live</span>
+              <span style="font-size:10px; color:#5f7395;">Click route or marker</span>
+            </div>
+            <div id="liveMap"></div>
+            <div class="wx-legend">
+              <div class="legend-title"><i class="fas fa-cloud"></i> WX Overlay</div>
+              <div class="legend-item">
+                <div class="legend-swatch" style="background:rgba(27,142,75,0.6);"></div>
+                <span>Clear / Light</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-swatch" style="background:rgba(230,168,60,0.6);"></div>
+                <span>Moderate</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-swatch" style="background:rgba(230,107,107,0.6);"></div>
+                <span>Severe / CB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="forecast-panel" id="mapSidePanel">
+            <div class="forecast-card active" id="forecastEntebbe">
+              <div class="fc-header">
+                <div>
+                  <div class="fc-code">HUEN</div>
+                  <div class="fc-name">Entebbe Intl · Live</div>
+                </div>
+                <div class="fc-condition"><i class="fas fa-cloud-sun"></i></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="fc-temp">26<span>°C</span></div>
+                <div style="font-size:10px; color:#6fe09a; font-weight:700;">VFR · CAVOK</div>
+              </div>
+              <div class="fc-details">
+                <div class="fc-detail"><span class="label">Wind</span><span class="value" id="liveWind">270/12</span></div>
+                <div class="fc-detail"><span class="label">Vis</span><span class="value" id="liveVis">10 km</span></div>
+                <div class="fc-detail"><span class="label">QNH</span><span class="value" id="liveQnh">1013</span></div>
+              </div>
+            </div>
+
+            <div class="forecast-card" id="forecastRoute">
+              <div class="fc-header">
+                <div>
+                  <div class="fc-code" id="selectedRouteCode">EBB → LHR</div>
+                  <div class="fc-name" id="selectedRouteName">Entebbe to London</div>
+                </div>
+                <div class="fc-condition"><i class="fas fa-route"></i></div>
+              </div>
+              <div class="fc-details" style="grid-template-columns:1fr 1fr;">
+                <div class="fc-detail"><span class="label">Distance</span><span class="value" id="selectedRouteDist">3,682 nm</span></div>
+                <div class="fc-detail"><span class="label">Flight Time</span><span class="value" id="selectedRouteTime">8h 45m</span></div>
+                <div class="fc-detail"><span class="label">Cruise</span><span class="value" id="selectedRouteAlt">FL360</span></div>
+                <div class="fc-detail"><span class="label">Aircraft</span><span class="value" id="selectedRouteAcft">A330</span></div>
+              </div>
+              <div style="margin-top:10px; padding-top:8px; border-top:1px solid #1e2d46; font-size:10px; color:#7c92b5;">
+                <i class="fas fa-info-circle" style="color:#4c9aff;"></i> Click any route line on the map to load details.
+              </div>
+            </div>
+
+            <div class="forecast-detail">
+              <div class="fd-title"><i class="fas fa-clock"></i> Hourly Outlook — EBB</div>
+              <div class="hourly-strip" id="hourlyStrip"></div>
+            </div>
+
+            <div class="forecast-detail">
+              <div class="fd-title"><i class="fas fa-satellite-dish"></i> Live Traffic (ADS-B)</div>
+              <div class="fd-row"><span class="fd-label">Aerolink 201</span><span class="fd-val" style="color:#6fe09a;">FL360 · EBB→LHR</span></div>
+              <div class="fd-row"><span class="fd-label">Aerolink 305</span><span class="fd-val" style="color:#6fe09a;">FL280 · EBB→NBO</span></div>
+              <div class="fd-row"><span class="fd-label">Aerolink 412</span><span class="fd-val" style="color:#e6a83c;">FL180 · EBB→GULU</span></div>
+              <div class="fd-row"><span class="fd-label">Kenya Airways 100</span><span class="fd-val" style="color:#6fe09a;">FL350 · NBO→LHR</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: LIVE WEATHER ===== -->
+      <div class="page-container" id="page-forecast">
+        <div class="section-header">
+          <h2>
+            <i class="fas fa-cloud-sun-rain"></i> Live Weather Forecast
+            <span class="live-badge"><span class="live-dot"></span> UPDATING</span>
+          </h2>
+          <span class="count-badge" id="forecastCount">6 stations</span>
+        </div>
+
+        <div class="forecast-grid" id="forecastGrid"></div>
+
+        <div class="radar-panel">
+          <div class="radar-title">
+            <span><i class="fas fa-satellite"></i> Live Radar — Lake Victoria Region</span>
+            <span class="live-badge" style="font-size:9px;"><span class="live-dot"></span> LIVE</span>
+          </div>
+          <svg class="radar-svg" viewBox="0 0 600 220">
+            <g opacity="0.3" stroke="#4c9aff" fill="none" stroke-width="0.8">
+              <circle cx="300" cy="110" r="30"/>
+              <circle cx="300" cy="110" r="60"/>
+              <circle cx="300" cy="110" r="90"/>
+              <circle cx="300" cy="110" r="120"/>
+            </g>
+            <line x1="300" y1="0" x2="300" y2="220" stroke="#4c9aff" stroke-width="0.5" opacity="0.3"/>
+            <line x1="0" y1="110" x2="600" y2="110" stroke="#4c9aff" stroke-width="0.5" opacity="0.3"/>
+            <defs>
+              <linearGradient id="sweepLine" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#4c9aff" stop-opacity="0"/>
+                <stop offset="50%" stop-color="#4c9aff" stop-opacity="0.8"/>
+                <stop offset="100%" stop-color="#4c9aff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <circle cx="220" cy="80" r="18" fill="rgba(230,168,60,0.4)"/>
+            <circle cx="380" cy="130" r="22" fill="rgba(230,107,107,0.4)"/>
+            <circle cx="280" cy="160" r="14" fill="rgba(27,142,75,0.5)"/>
+            <circle cx="420" cy="70" r="16" fill="rgba(230,168,60,0.4)"/>
+            <line x1="300" y1="110" x2="500" y2="60" stroke="url(#sweepLine)" stroke-width="3" opacity="0.8">
+              <animateTransform attributeName="transform" type="rotate" from="0 300 110" to="360 300 110" dur="4s" repeatCount="indefinite"/>
+            </line>
+            <circle cx="300" cy="110" r="4" fill="#4c9aff">
+              <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <text x="300" y="200" text-anchor="middle" fill="#5f7395" font-size="9" font-weight="600" letter-spacing="1">LAKE VICTORIA · 250 NM RANGE</text>
+          </svg>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+          <div class="forecast-detail">
+            <div class="fd-title"><i class="fas fa-wind"></i> Winds Aloft — FL360</div>
+            <div class="fd-row"><span class="fd-label">Entebbe</span><span class="fd-val">270° / 45 kt</span></div>
+            <div class="fd-row"><span class="fd-label">Nairobi</span><span class="fd-val">260° / 38 kt</span></div>
+            <div class="fd-row"><span class="fd-label">Addis</span><span class="fd-val">290° / 55 kt</span></div>
+            <div class="fd-row"><span class="fd-label">Johannesburg</span><span class="fd-val">310° / 30 kt</span></div>
+          </div>
+          <div class="forecast-detail">
+            <div class="fd-title"><i class="fas fa-temperature-high"></i> Temperature / Freezing Level</div>
+            <div class="fd-row"><span class="fd-label">Surface (EBB)</span><span class="fd-val">26°C / 79°F</span></div>
+            <div class="fd-row"><span class="fd-label">FL180</span><span class="fd-val">-5°C</span></div>
+            <div class="fd-row"><span class="fd-label">FL360</span><span class="fd-val">-45°C</span></div>
+            <div class="fd-row"><span class="fd-label">Freezing Level</span><span class="fd-val">15,000 ft</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: PILOT MANUALS ===== -->
+      <div class="page-container" id="page-manuals">
+        <div class="section-header">
+          <h2><i class="fas fa-book"></i> Aerolink Pilot Manuals</h2>
+          <span class="count-badge" id="manualCount">7 documents</span>
+        </div>
+        <div class="manuals-grid" id="manualsGrid"></div>
+      </div>
+
+      <!-- ===== PAGE: ADMIN PANEL (hidden unless admin) ===== -->
+      <div class="page-container" id="page-admin">
+        <div class="admin-header">
+          <div class="admin-title">
+            <div class="admin-icon"><i class="fas fa-shield-halved"></i></div>
+            <h2>
+              Admin Control Center
+              <small>Route Management · Full Access</small>
+            </h2>
+          </div>
+          <div class="live-badge" style="background:rgba(252,220,4,0.15); border-color:#fcdc04; color:#fcdc04;">
+            <i class="fas fa-key"></i> ADMIN
+          </div>
+        </div>
+
+        <!-- Admin stats -->
+        <div class="admin-stats">
+          <div class="admin-stat">
+            <div class="stat-icon" style="background:rgba(76,154,255,0.15); color:#4c9aff;">
+              <i class="fas fa-route"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statTotalRoutes">10</span>
+              <span class="stat-label">Total Routes</span>
+            </div>
+          </div>
+          <div class="admin-stat">
+            <div class="stat-icon" style="background:rgba(27,142,75,0.15); color:#6fe09a;">
+              <i class="fas fa-plane"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statIntlRoutes">5</span>
+              <span class="stat-label">International</span>
+            </div>
+          </div>
+          <div class="admin-stat">
+            <div class="stat-icon" style="background:rgba(179,123,26,0.15); color:#e6a83c;">
+              <i class="fas fa-map-location-dot"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statDomRoutes">3</span>
+              <span class="stat-label">Domestic</span>
+            </div>
+          </div>
+          <div class="admin-stat">
+            <div class="stat-icon" style="background:rgba(160,107,255,0.15); color:#b08aff;">
+              <i class="fas fa-compass"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="statCharterRoutes">2</span>
+              <span class="stat-label">Charter</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="admin-toolbar">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="adminSearch" placeholder="Search routes by code, name, or type...">
+          </div>
+          <button class="admin-btn gold" id="addRouteBtn">
+            <i class="fas fa-plus"></i> Add New Route
+          </button>
+        </div>
+
+        <!-- Route table -->
+        <div class="route-table-wrap">
+          <table class="route-table">
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th>From → To</th>
+                <th>Type</th>
+                <th>Aircraft</th>
+                <th>Distance</th>
+                <th>Flight Time</th>
+                <th>Cruise</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminRouteTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="action-bar">
+        <button class="btn" id="btnNav"><i class="fas fa-map"></i> NAV</button>
+        <button class="btn" id="btnChecklists"><i class="fas fa-clipboard-list"></i> CHECKLISTS</button>
+        <button class="btn" id="btnPerf"><i class="fas fa-chart-pie"></i> PERF</button>
+        <button class="btn" id="btnSys"><i class="fas fa-cog"></i> SYS</button>
+      </div>
+
+      <div class="bottom-info">
+        <span><i class="fas fa-satellite"></i> GPS · ADS-B · LIVE</span>
+        <span><i class="fas fa-battery-three-quarters"></i> <span id="batteryLevel">96%</span> · 2h 15m</span>
+        <span><span class="live-dot"></span> SATCOM ONLINE</span>
+        <span><i class="fas fa-database"></i> NavData: AIRAC 2503</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <i class="fas fa-info-circle"></i>
+    <span id="toastMessage">Action completed</span>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box" id="modalBox">
+      <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    (function() {
+      // ============================================================
+      // AUTHENTICATION
+      // ============================================================
+      const USERS = {
+        'captain': { password: 'aerolink2025', name: 'Capt. James Okello', role: 'PIC · A330', initials: 'JO', isAdmin: false },
+        'fo': { password: 'aerolink2025', name: 'F/O Sarah Nakato', role: 'SIC · A330', initials: 'SN', isAdmin: false },
+        'admin': { password: 'admin123', name: 'Admin Dispatch', role: 'Operations Manager', initials: 'AD', isAdmin: true },
+        'pilot@aerolink.ug': { password: 'aerolink2025', name: 'Capt. James Okello', role: 'PIC · A330', initials: 'JO', isAdmin: false }
+      };
+
+      const loginScreen = document.getElementById('loginScreen');
+      const efbContainer = document.getElementById('efbContainer');
+      const loginForm = document.getElementById('loginForm');
+      const loginBtn = document.getElementById('loginBtn');
+      const loginError = document.getElementById('loginError');
+      const loginErrorMsg = document.getElementById('loginErrorMsg');
+      const pilotIdInput = document.getElementById('pilotId');
+      const passwordInput = document.getElementById('password');
+      const togglePassword = document.getElementById('togglePassword');
+      const pilotBadge = document.getElementById('pilotBadge');
+      const pilotName = document.getElementById('pilotName');
+      const pilotRole = document.getElementById('pilotRole');
+      const pilotAvatar = document.getElementById('pilotAvatar');
+      const forgotLink = document.getElementById('forgotLink');
+      const tabNav = document.getElementById('tabNav');
+
+      let currentUser = null;
+
+      togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.querySelector('i').className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+      });
+
+      function showLoginError(msg) {
+        loginErrorMsg.textContent = msg;
+        loginError.classList.add('show');
+        setTimeout(() => loginError.classList.remove('show'), 5000);
+      }
+
+      loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = pilotIdInput.value.trim().toLowerCase();
+        const pw = passwordInput.value;
+
+        if (!id || !pw) {
+          showLoginError('Please enter both Pilot ID and password.');
+          return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<div class="spinner"></div><span>Authenticating...</span>';
+
+        setTimeout(() => {
+          const user = USERS[id];
+          if (user && user.password === pw) {
+            currentUser = user;
+            sessionStorage.setItem('aerolink_user', JSON.stringify(user));
+            sessionStorage.setItem('aerolink_logged_in', 'true');
+            pilotName.textContent = user.name;
+            pilotRole.textContent = user.role;
+            pilotAvatar.textContent = user.initials;
+
+            // Admin styling
+            if (user.isAdmin) {
+              pilotBadge.classList.add('admin-badge');
+              // Add admin tab
+              if (!document.querySelector('.tab-btn[data-page="admin"]')) {
+                const adminBtn = document.createElement('button');
+                adminBtn.className = 'tab-btn admin-tab';
+                adminBtn.dataset.page = 'admin';
+                adminBtn.innerHTML = '<i class="fas fa-shield-halved"></i> Admin';
+                tabNav.appendChild(adminBtn);
+                adminBtn.addEventListener('click', () => {
+                  switchPage('admin');
+                  const allBtns = document.querySelectorAll('.tab-btn');
+                  allBtns.forEach(b => b.classList.toggle('active', b.dataset.page === 'admin'));
+                  showToast('Admin Control Center', 'fa-shield-halved');
+                });
+              }
+            } else {
+              pilotBadge.classList.remove('admin-badge');
+              const adminBtn = document.querySelector('.tab-btn[data-page="admin"]');
+              if (adminBtn) adminBtn.remove();
+            }
+
+            loginScreen.classList.add('hidden');
+            setTimeout(() => {
+              efbContainer.classList.add('visible');
+              showToast(`Welcome aboard, ${user.name}`, 'fa-user-check');
+              setTimeout(initLiveMap, 500);
+              renderAdminTable();
+            }, 400);
+          } else {
+            showLoginError('Invalid Pilot ID or password. Please try again.');
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Sign In to EFB</span>';
+            passwordInput.value = '';
+            passwordInput.focus();
+          }
+        }, 900);
+      });
+
+      forgotLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showToast('Contact IT Ops: itops@aerolink.ug', 'fa-envelope');
+      });
+
+      pilotBadge.addEventListener('click', function() {
+        if (confirm('Are you sure you want to log out of the EFB?')) {
+          efbContainer.classList.remove('visible');
+          setTimeout(() => {
+            loginScreen.classList.remove('hidden');
+            loginForm.reset();
+            pilotIdInput.value = '';
+            passwordInput.value = '';
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Sign In to EFB</span>';
+            sessionStorage.removeItem('aerolink_user');
+            sessionStorage.removeItem('aerolink_logged_in');
+            pilotIdInput.focus();
+            showToast('Logged out successfully', 'fa-sign-out-alt');
+            // Remove admin tab if present
+            const adminBtn = document.querySelector('.tab-btn[data-page="admin"]');
+            if (adminBtn) adminBtn.remove();
+            pilotBadge.classList.remove('admin-badge');
+          }, 400);
+        }
+      });
+
+      window.addEventListener('load', () => {
+        const loggedIn = sessionStorage.getItem('aerolink_logged_in');
+        if (loggedIn === 'true') {
+          const user = JSON.parse(sessionStorage.getItem('aerolink_user'));
+          if (user) {
+            currentUser = user;
+            pilotName.textContent = user.name;
+            pilotRole.textContent = user.role;
+            pilotAvatar.textContent = user.initials;
+            if (user.isAdmin) {
+              pilotBadge.classList.add('admin-badge');
+              const adminBtn = document.createElement('button');
+              adminBtn.className = 'tab-btn admin-tab';
+              adminBtn.dataset.page = 'admin';
+              adminBtn.innerHTML = '<i class="fas fa-shield-halved"></i> Admin';
+              tabNav.appendChild(adminBtn);
+              adminBtn.addEventListener('click', () => {
+                switchPage('admin');
+                const allBtns = document.querySelectorAll('.tab-btn');
+                allBtns.forEach(b => b.classList.toggle('active', b.dataset.page === 'admin'));
+                showToast('Admin Control Center', 'fa-shield-halved');
+              });
+            }
+            loginScreen.classList.add('hidden');
+            efbContainer.classList.add('visible');
+            setTimeout(() => {
+              initLiveMap();
+              renderAdminTable();
+            }, 500);
+          }
+        } else {
+          setTimeout(() => pilotIdInput.focus(), 800);
+        }
+      });
+
+      // ============================================================
+      // TOAST
+      // ============================================================
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+
+      function showToast(message, icon = 'fa-info-circle', gold = false) {
+        toastMsg.textContent = message;
+        toast.querySelector('i').className = `fas ${icon}`;
+        toast.classList.toggle('gold', gold);
+        toast.classList.add('show');
+        clearTimeout(window.toastTimeout);
+        window.toastTimeout = setTimeout(() => toast.classList.remove('show'), 2400);
+      }
+
+      // ============================================================
+      // ROUTES DATA (mutable for admin edits)
+      // ============================================================
+      let routesData = [
+        { id: 'ebb-lhr', from: 'EBB', to: 'LHR', fromName: 'Entebbe', toName: 'London Heathrow', aircraft: 'A330-300', distance: '3,682 nm', flightTime: '8h 45m', alt: 'FL360', type: 'International', fromCoord: [0.0424, 32.4435], toCoord: [51.4700, -0.4543], color: '#4c9aff' },
+        { id: 'ebb-nbo', from: 'EBB', to: 'NBO', fromName: 'Entebbe', toName: 'Nairobi', aircraft: 'B737-800', distance: '283 nm', flightTime: '1h 05m', alt: 'FL280', type: 'Regional', fromCoord: [0.0424, 32.4435], toCoord: [-1.3192, 36.9278], color: '#6fe09a' },
+        { id: 'ebb-add', from: 'EBB', to: 'ADD', fromName: 'Entebbe', toName: 'Addis Ababa', aircraft: 'B737-800', distance: '668 nm', flightTime: '1h 50m', alt: 'FL340', type: 'Regional', fromCoord: [0.0424, 32.4435], toCoord: [8.9779, 38.7993], color: '#fcdc04' },
+        { id: 'ebb-jnb', from: 'EBB', to: 'JNB', fromName: 'Entebbe', toName: 'Johannesburg', aircraft: 'A330-200', distance: '1,732 nm', flightTime: '4h 10m', alt: 'FL380', type: 'International', fromCoord: [0.0424, 32.4435], toCoord: [-26.1392, 28.2460], color: '#4c9aff' },
+        { id: 'ebb-dxb', from: 'EBB', to: 'DXB', fromName: 'Entebbe', toName: 'Dubai', aircraft: 'B787-9', distance: '2,080 nm', flightTime: '4h 50m', alt: 'FL390', type: 'International', fromCoord: [0.0424, 32.4435], toCoord: [25.2532, 55.3657], color: '#4c9aff' },
+        { id: 'ebb-gulu', from: 'EBB', to: 'GULU', fromName: 'Entebbe', toName: 'Gulu', aircraft: 'Dash 8 Q400', distance: '175 nm', flightTime: '0h 50m', alt: 'FL200', type: 'Domestic', fromCoord: [0.0424, 32.4435], toCoord: [2.8056, 32.2714], color: '#a06bff' },
+        { id: 'ebb-mbarara', from: 'EBB', to: 'MBARARA', fromName: 'Entebbe', toName: 'Mbarara', aircraft: 'Cessna 208', distance: '120 nm', flightTime: '0h 45m', alt: 'FL150', type: 'Domestic', fromCoord: [0.0424, 32.4435], toCoord: [-0.6137, 30.6585], color: '#a06bff' },
+        { id: 'ebb-kasese', from: 'EBB', to: 'KASESE', fromName: 'Entebbe', toName: 'Kasese', aircraft: 'Dash 8 Q400', distance: '160 nm', flightTime: '0h 55m', alt: 'FL180', type: 'Domestic', fromCoord: [0.0424, 32.4435], toCoord: [0.1833, 30.1000], color: '#a06bff' },
+        { id: 'ebb-pakuba', from: 'EBB', to: 'PAKUBA', fromName: 'Entebbe', toName: 'Pakuba (Murchison Falls)', aircraft: 'Cessna 208', distance: '140 nm', flightTime: '0h 50m', alt: 'FL140', type: 'Charter', fromCoord: [0.0424, 32.4435], toCoord: [2.3267, 31.4903], color: '#a06bff' },
+        { id: 'ebb-kidepo', from: 'EBB', to: 'KIDEPO', fromName: 'Entebbe', toName: 'Kidepo', aircraft: 'Cessna 208', distance: '260 nm', flightTime: '1h 20m', alt: 'FL160', type: 'Charter', fromCoord: [0.0424, 32.4435], toCoord: [3.7167, 33.7500], color: '#a06bff' }
+      ];
+
+      // ============================================================
+      // LIVE MAP
+      // ============================================================
+      let liveMap = null;
+      const routeLayers = {};
+      const airportMarkers = {};
+      const wxLayers = {};
+
+      function initLiveMap() {
+        if (liveMap) return;
+
+        liveMap = L.map('liveMap', {
+          center: [0.5, 32.5],
+          zoom: 6,
+          zoomControl: true,
+          attributionControl: true,
+          scrollWheelZoom: true,
+          worldCopyJump: true
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap &copy; CARTO',
+          subdomains: 'abcd',
+          maxZoom: 19
+        }).addTo(liveMap);
+
+        addWeatherOverlay();
+        drawAllRoutes();
+        addAirportMarkers();
+        addLiveAircraft();
+        animateAircraft();
+      }
+
+      function drawAllRoutes() {
+        // Clear existing route layers
+        Object.values(routeLayers).forEach(l => liveMap.removeLayer(l));
+        Object.keys(routeLayers).forEach(k => delete routeLayers[k]);
+
+        routesData.forEach(route => {
+          const line = L.polyline([route.fromCoord, route.toCoord], {
+            color: route.color,
+            weight: route.type === 'Domestic' || route.type === 'Charter' ? 2 : 3,
+            opacity: 0.75,
+            dashArray: route.type === 'Domestic' || route.type === 'Charter' ? '4,6' : null,
+            smoothFactor: 1.5
+          }).addTo(liveMap);
+
+          line.bindPopup(`
+            <b>${route.from} → ${route.to}</b>
+            ${route.fromName} to ${route.toName}<br>
+            <span style="color:#6aa9ff;">${route.aircraft}</span><br>
+            Distance: <b>${route.distance}</b><br>
+            Flight Time: <b>${route.flightTime}</b><br>
+            Cruise: <b>${route.alt}</b>
+          `);
+
+          line.on('click', () => selectRoute(route.id));
+          line.on('mouseover', function() { this.setStyle({ weight: 5, opacity: 1 }); });
+          line.on('mouseout', function() {
+            this.setStyle({ weight: route.type === 'Domestic' || route.type === 'Charter' ? 2 : 3, opacity: 0.75 });
+          });
+
+          routeLayers[route.id] = line;
+        });
+
+        document.getElementById('mapRouteCount').textContent = `${routesData.length} routes`;
+      }
+
+      function addWeatherOverlay() {
+        const wxCells = [
+          { coord: [0.5, 33.5], radius: 80000, color: '#e6a83c', label: 'Kampala T-Storms' },
+          { coord: [-0.8, 32.0], radius: 90000, color: '#e66b6b', label: 'Lake Victoria CBs' },
+          { coord: [-1.3, 36.9], radius: 70000, color: '#1b8e4b', label: 'Nairobi Showers' },
+          { coord: [3.0, 31.0], radius: 60000, color: '#1b8e4b', label: 'South Sudan Clear' },
+          { coord: [8.9, 38.8], radius: 65000, color: '#e6a83c', label: 'Addis Windy' },
+          { coord: [2.0, 45.0], radius: 80000, color: '#e66b6b', label: 'Somalia Convection' }
+        ];
+
+        wxCells.forEach((cell, i) => {
+          const circle = L.circle(cell.coord, {
+            radius: cell.radius,
+            color: cell.color,
+            fillColor: cell.color,
+            fillOpacity: 0.18,
+            weight: 1.5,
+            opacity: 0.6,
+            dashArray: '6,8'
+          }).addTo(liveMap);
+
+          circle.bindPopup(`<b>Weather: ${cell.label}</b><br>Live radar echo · Moderate intensity`);
+          circle.on('click', () => showToast(`Weather: ${cell.label}`, 'fa-cloud-bolt'));
+          wxLayers['wx' + i] = circle;
+        });
+      }
+
+      function addAirportMarkers() {
+        const airports = [
+          { code: 'EBB', name: 'Entebbe Intl', coord: [0.0424, 32.4435], hub: true },
+          { code: 'LHR', name: 'London Heathrow', coord: [51.4700, -0.4543] },
+          { code: 'NBO', name: 'Nairobi JKIA', coord: [-1.3192, 36.9278] },
+          { code: 'ADD', name: 'Addis Ababa', coord: [8.9779, 38.7993] },
+          { code: 'JNB', name: 'Johannesburg', coord: [-26.1392, 28.2460] },
+          { code: 'DXB', name: 'Dubai Intl', coord: [25.2532, 55.3657] },
+          { code: 'GULU', name: 'Gulu', coord: [2.8056, 32.2714] },
+          { code: 'MBARARA', name: 'Mbarara', coord: [-0.6137, 30.6585] },
+          { code: 'KASESE', name: 'Kasese', coord: [0.1833, 30.1000] },
+          { code: 'PAKUBA', name: 'Pakuba', coord: [2.3267, 31.4903] },
+          { code: 'KIDEPO', name: 'Kidepo', coord: [3.7167, 33.7500] }
+        ];
+
+        airports.forEach(apt => {
+          if (airportMarkers[apt.code]) liveMap.removeLayer(airportMarkers[apt.code]);
+          const color = apt.hub ? '#fcdc04' : '#4c9aff';
+          const radius = apt.hub ? 10 : 6;
+          const marker = L.circleMarker(apt.coord, {
+            radius: radius,
+            fillColor: color,
+            color: '#0b111e',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.95
+          }).addTo(liveMap);
+
+          marker.bindPopup(`<b>${apt.code}</b> — ${apt.name}<br>${apt.hub ? '<span style="color:#fcdc04;">🛫 Aerolink Hub</span>' : '<span style="color:#6aa9ff;">Regional Airport</span>'}`);
+          marker.on('click', () => showToast(`Airport: ${apt.code} — ${apt.name}`, 'fa-plane-arrival'));
+          airportMarkers[apt.code] = marker;
+        });
+      }
+
+      function addLiveAircraft() {
+        const aircraftIcon = L.divIcon({
+          className: '',
+          html: '<div class="aircraft-marker" style="width:28px;height:28px;"><i class="fas fa-plane"></i></div>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+
+        window.liveAircraft = L.marker([0.5, 32.8], { icon: aircraftIcon }).addTo(liveMap);
+        window.liveAircraft.bindPopup(`<b>Aerolink 201</b><br>EBB → LHR<br>FL360 · 480 kt<br><span style="color:#6fe09a;">● Live ADS-B</span>`);
+      }
+
+      let aircraftProgress = 0;
+      const aircraftPath = [[0.0424, 32.4435], [5, 30], [15, 25], [25, 20], [35, 10], [45, 0], [51.47, -0.45]];
+
+      function animateAircraft() {
+        setInterval(() => {
+          if (!window.liveAircraft) return;
+          aircraftProgress += 0.008;
+          if (aircraftProgress > 1) aircraftProgress = 0;
+          const totalSegments = aircraftPath.length - 1;
+          const seg = Math.min(Math.floor(aircraftProgress * totalSegments), totalSegments - 1);
+          const segProgress = (aircraftProgress * totalSegments) - seg;
+          const start = aircraftPath[seg];
+          const end = aircraftPath[seg + 1];
+          const lat = start[0] + (end[0] - start[0]) * segProgress;
+          const lng = start[1] + (end[1] - start[1]) * segProgress;
+          window.liveAircraft.setLatLng([lat, lng]);
+        }, 100);
+      }
+
+      // ============================================================
+      // ROUTE SELECTION
+      // ============================================================
+      const selectedRouteCode = document.getElementById('selectedRouteCode');
+      const selectedRouteName = document.getElementById('selectedRouteName');
+      const selectedRouteDist = document.getElementById('selectedRouteDist');
+      const selectedRouteTime = document.getElementById('selectedRouteTime');
+      const selectedRouteAlt = document.getElementById('selectedRouteAlt');
+      const selectedRouteAcft = document.getElementById('selectedRouteAcft');
+
+      function selectRoute(routeId) {
+        const route = routesData.find(r => r.id === routeId);
+        if (!route) return;
+
+        Object.keys(routeLayers).forEach(id => {
+          const layer = routeLayers[id];
+          const r = routesData.find(x => x.id === id);
+          if (id === routeId) {
+            layer.setStyle({ weight: 5, opacity: 1, color: '#fcdc04' });
+            layer.bringToFront();
+          } else {
+            layer.setStyle({ weight: r.type === 'Domestic' || r.type === 'Charter' ? 2 : 3, opacity: 0.3, color: r.color });
+          }
+        });
+
+        selectedRouteCode.textContent = `${route.from} → ${route.to}`;
+        selectedRouteName.textContent = `${route.fromName} to ${route.toName}`;
+        selectedRouteDist.textContent = route.distance;
+        selectedRouteTime.textContent = route.flightTime;
+        selectedRouteAlt.textContent = route.alt;
+        selectedRouteAcft.textContent = route.aircraft.split('-')[0];
+        document.getElementById('currentRoute').textContent = `${route.from} → ${route.to}`;
+        showToast(`Route loaded: ${route.from} → ${route.to}`, 'fa-route');
+      }
+
+      // ============================================================
+      // ADMIN PANEL
+      // ============================================================
+      const adminRouteTableBody = document.getElementById('adminRouteTableBody');
+      const adminSearch = document.getElementById('adminSearch');
+      let searchFilter = '';
+
+      adminSearch.addEventListener('input', (e) => {
+        searchFilter = e.target.value.toLowerCase();
+        renderAdminTable();
+      });
+
+      function renderAdminTable() {
+        if (!adminRouteTableBody) return;
+        adminRouteTableBody.innerHTML = '';
+
+        const filtered = routesData.filter(r => {
+          if (!searchFilter) return true;
+          return r.from.toLowerCase().includes(searchFilter) ||
+                 r.to.toLowerCase().includes(searchFilter) ||
+                 r.fromName.toLowerCase().includes(searchFilter) ||
+                 r.toName.toLowerCase().includes(searchFilter) ||
+                 r.type.toLowerCase().includes(searchFilter) ||
+                 r.aircraft.toLowerCase().includes(searchFilter);
+        });
+
+        filtered.forEach(route => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><div class="route-pair-cell"><i class="fas fa-plane-departure"></i>${route.from} → ${route.to}</div></td>
+            <td style="font-size:12px;color:#8ba0c2;">${route.fromName} → ${route.toName}</td>
+            <td><span class="badge ${route.type.toLowerCase()}">${route.type}</span></td>
+            <td style="font-size:12px;">${route.aircraft}</td>
+            <td style="font-size:12px;">${route.distance}</td>
+            <td style="font-size:12px;">${route.flightTime}</td>
+            <td style="font-size:12px;">${route.alt}</td>
+            <td>
+              <div class="action-cell">
+                <button class="icon-btn" title="Edit route" data-edit="${route.id}"><i class="fas fa-pen"></i></button>
+                <button class="icon-btn danger" title="Delete route" data-delete="${route.id}"><i class="fas fa-trash"></i></button>
+              </div>
+            </td>
+          `;
+          adminRouteTableBody.appendChild(tr);
+        });
+
+        // Update stats
+        document.getElementById('statTotalRoutes').textContent = routesData.length;
+        document.getElementById('statIntlRoutes').textContent = routesData.filter(r => r.type === 'International').length;
+        document.getElementById('statDomRoutes').textContent = routesData.filter(r => r.type === 'Domestic').length;
+        document.getElementById('statCharterRoutes').textContent = routesData.filter(r => r.type === 'Charter').length;
+      }
+
+      // Event delegation for edit/delete
+      adminRouteTableBody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('[data-edit]');
+        const deleteBtn = e.target.closest('[data-delete]');
+
+        if (editBtn) {
+          const route = routesData.find(r => r.id === editBtn.dataset.edit);
+          if (route) openRouteForm(route);
+        }
+
+        if (deleteBtn) {
+          const routeId = deleteBtn.dataset.delete;
+          const route = routesData.find(r => r.id === routeId);
+          if (route && confirm(`Delete route ${route.from} → ${route.to}?`)) {
+            routesData = routesData.filter(r => r.id !== routeId);
+            // Remove from map
+            if (routeLayers[routeId]) {
+              liveMap.removeLayer(routeLayers[routeId]);
+              delete routeLayers[routeId];
+            }
+            renderAdminTable();
+            document.getElementById('mapRouteCount').textContent = `${routesData.length} routes`;
+            showToast(`Route deleted: ${route.from} → ${route.to}`, 'fa-trash', true);
+          }
+        }
+      });
+
+      // Add route button
+      document.getElementById('addRouteBtn').addEventListener('click', () => openRouteForm(null));
+
+      // Route form modal
+      function openRouteForm(route) {
+        const isEdit = !!route;
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = `
+          <h2><i class="fas ${isEdit ? 'fa-pen' : 'fa-plus'}"></i> ${isEdit ? 'Edit Route' : 'Add New Route'}</h2>
+          <form class="route-form" id="routeForm">
+            <div class="form-field">
+              <label>From (IATA)</label>
+              <input type="text" name="from" placeholder="EBB" maxlength="4" value="${route ? route.from : ''}" required style="text-transform:uppercase;">
+            </div>
+            <div class="form-field">
+              <label>To (IATA)</label>
+              <input type="text" name="to" placeholder="LHR" maxlength="4" value="${route ? route.to : ''}" required style="text-transform:uppercase;">
+            </div>
+            <div class="form-field">
+              <label>From City</label>
+              <input type="text" name="fromName" placeholder="Entebbe" value="${route ? route.fromName : ''}" required>
+            </div>
+            <div class="form-field">
+              <label>To City</label>
+              <input type="text" name="toName" placeholder="London Heathrow" value="${route ? route.toName : ''}" required>
+            </div>
+            <div class="form-field">
+              <label>Aircraft Type</label>
+              <input type="text" name="aircraft" placeholder="A330-300" value="${route ? route.aircraft : ''}" required>
+            </div>
+            <div class="form-field">
+              <label>Route Type</label>
+              <select name="type" required>
+                <option value="International" ${route && route.type === 'International' ? 'selected' : ''}>International</option>
+                <option value="Regional" ${route && route.type === 'Regional' ? 'selected' : ''}>Regional</option>
+                <option value="Domestic" ${route && route.type === 'Domestic' ? 'selected' : ''}>Domestic</option>
+                <option value="Charter" ${route && route.type === 'Charter' ? 'selected' : ''}>Charter</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Distance</label>
+              <input type="text" name="distance" placeholder="3,682 nm" value="${route ? route.distance : ''}" required>
+            </div>
+            <div class="form-field">
+              <label>Flight Time</label>
+              <input type="text" name="flightTime" placeholder="8h 45m" value="${route ? route.flightTime : ''}" required>
+            </div>
+            <div class="form-field">
+              <label>Cruise Altitude</label>
+              <input type="text" name="alt" placeholder="FL360" value="${route ? route.alt : ''}" required>
+            </div>
+            <div class="form-field">
+              <label>Line Color</label>
+              <select name="color">
+                <option value="#4c9aff" ${route && route.color === '#4c9aff' ? 'selected' : ''}>Blue (International)</option>
+                <option value="#6fe09a" ${route && route.color === '#6fe09a' ? 'selected' : ''}>Green (Regional)</option>
+                <option value="#fcdc04" ${route && route.color === '#fcdc04' ? 'selected' : ''}>Yellow (Regional)</option>
+                <option value="#a06bff" ${route && route.color === '#a06bff' ? 'selected' : ''}>Purple (Domestic/Charter)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>From Coordinates (Lat, Lng)</label>
+              <div class="coord-row">
+                <input type="number" step="0.0001" name="fromLat" placeholder="0.0424" value="${route ? route.fromCoord[0] : '0.0424'}" required>
+                <input type="number" step="0.0001" name="fromLng" placeholder="32.4435" value="${route ? route.fromCoord[1] : '32.4435'}" required>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>To Coordinates (Lat, Lng)</label>
+              <div class="coord-row">
+                <input type="number" step="0.0001" name="toLat" placeholder="51.4700" value="${route ? route.toCoord[0] : ''}" required>
+                <input type="number" step="0.0001" name="toLng" placeholder="-0.4543" value="${route ? route.toCoord[1] : ''}" required>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="cancelRouteBtn">Cancel</button>
+              <button type="submit" class="primary"><i class="fas fa-save"></i> ${isEdit ? 'Save Changes' : 'Create Route'}</button>
+            </div>
+          </form>
+        `;
+        modalOverlay.classList.add('active');
+
+        document.getElementById('cancelRouteBtn').addEventListener('click', () => modalOverlay.classList.remove('active'));
+
+        document.getElementById('routeForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const newRoute = {
+            id: route ? route.id : 'route-' + Date.now(),
+            from: fd.get('from').toUpperCase(),
+            to: fd.get('to').toUpperCase(),
+            fromName: fd.get('fromName'),
+            toName: fd.get('toName'),
+            aircraft: fd.get('aircraft'),
+            type: fd.get('type'),
+            distance: fd.get('distance'),
+            flightTime: fd.get('flightTime'),
+            alt: fd.get('alt'),
+            color: fd.get('color'),
+            fromCoord: [parseFloat(fd.get('fromLat')), parseFloat(fd.get('fromLng'))],
+            toCoord: [parseFloat(fd.get('toLat')), parseFloat(fd.get('toLng'))]
+          };
+
+          if (isEdit) {
+            const idx = routesData.findIndex(r => r.id === route.id);
+            routesData[idx] = newRoute;
+            showToast(`Route updated: ${newRoute.from} → ${newRoute.to}`, 'fa-pen', true);
+          } else {
+            routesData.push(newRoute);
+            showToast(`Route added: ${newRoute.from} → ${newRoute.to}`, 'fa-plus', true);
+          }
+
+          modalOverlay.classList.remove('active');
+
+          // Redraw map and table
+          if (liveMap) {
+            // Remove old layer if edit
+            if (isEdit && routeLayers[route.id]) {
+              liveMap.removeLayer(routeLayers[route.id]);
+              delete routeLayers[route.id];
+            }
+            // Add new layer
+            const line = L.polyline([newRoute.fromCoord, newRoute.toCoord], {
+              color: newRoute.color,
+              weight: newRoute.type === 'Domestic' || newRoute.type === 'Charter' ? 2 : 3,
+              opacity: 0.75,
+              dashArray: newRoute.type === 'Domestic' || newRoute.type === 'Charter' ? '4,6' : null,
+              smoothFactor: 1.5
+            }).addTo(liveMap);
+
+            line.bindPopup(`
+              <b>${newRoute.from} → ${newRoute.to}</b>
+              ${newRoute.fromName} to ${newRoute.toName}<br>
+              <span style="color:#6aa9ff;">${newRoute.aircraft}</span><br>
+              Distance: <b>${newRoute.distance}</b><br>
+              Flight Time: <b>${newRoute.flightTime}</b><br>
+              Cruise: <b>${newRoute.alt}</b>
+            `);
+            line.on('click', () => selectRoute(newRoute.id));
+            routeLayers[newRoute.id] = line;
+
+            // Ensure airport markers exist for new endpoints
+            ensureAirportMarker(newRoute.from, newRoute.fromName, newRoute.fromCoord);
+            ensureAirportMarker(newRoute.to, newRoute.toName, newRoute.toCoord);
+          }
+
+          renderAdminTable();
+          document.getElementById('mapRouteCount').textContent = `${routesData.length} routes`;
+        });
+      }
+
+      function ensureAirportMarker(code, name, coord) {
+        if (airportMarkers[code]) return;
+        const marker = L.circleMarker(coord, {
+          radius: 6,
+          fillColor: '#4c9aff',
+          color: '#0b111e',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.95
+        }).addTo(liveMap);
+        marker.bindPopup(`<b>${code}</b> — ${name}<br><span style="color:#6aa9ff;">Regional Airport</span>`);
+        marker.on('click', () => showToast(`Airport: ${code} — ${name}`, 'fa-plane-arrival'));
+        airportMarkers[code] = marker;
+      }
+
+      // ============================================================
+      // FORECAST STATIONS
+      // ============================================================
+      const forecastStations = [
+        { code: 'HUEN', name: 'Entebbe Intl', temp: 26, dew: 18, wind: '270/12', vis: '10 km', qnh: '1013', condition: 'fa-cloud-sun', conditionText: 'Partly Cloudy', status: 'VFR · CAVOK', statusColor: '#6fe09a' },
+        { code: 'HKJK', name: 'Nairobi JKIA', temp: 22, dew: 15, wind: '260/08', vis: '8 km', qnh: '1015', condition: 'fa-cloud-rain', conditionText: 'Light Showers', status: 'MVFR', statusColor: '#e6a83c' },
+        { code: 'HAAB', name: 'Addis Ababa', temp: 19, dew: 10, wind: '290/15', vis: '6 km', qnh: '1020', condition: 'fa-wind', conditionText: 'Windy · Dust', status: 'IFR', statusColor: '#e6a83c' },
+        { code: 'FAOR', name: 'Johannesburg', temp: 17, dew: 8, wind: '310/10', vis: '12 km', qnh: '1022', condition: 'fa-sun', conditionText: 'Clear', status: 'VFR', statusColor: '#6fe09a' },
+        { code: 'OMDB', name: 'Dubai Intl', temp: 34, dew: 22, wind: '150/06', vis: '5 km', qnh: '1008', condition: 'fa-smog', conditionText: 'Haze', status: 'MVFR', statusColor: '#e6a83c' },
+        { code: 'HUGU', name: 'Gulu', temp: 28, dew: 20, wind: '250/07', vis: '10 km', qnh: '1012', condition: 'fa-cloud-sun', conditionText: 'Scattered', status: 'VFR', statusColor: '#6fe09a' }
+      ];
+
+      const forecastGrid = document.getElementById('forecastGrid');
+      forecastStations.forEach((st) => {
+        const card = document.createElement('div');
+        card.className = 'forecast-card';
+        card.innerHTML = `
+          <div class="fc-header">
+            <div><div class="fc-code">${st.code}</div><div class="fc-name">${st.name}</div></div>
+            <div class="fc-condition"><i class="fas ${st.condition}"></i></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="fc-temp">${st.temp}<span>°C</span></div>
+            <div style="font-size:10px; color:${st.statusColor}; font-weight:700;">${st.status}</div>
+          </div>
+          <div class="fc-details">
+            <div class="fc-detail"><span class="label">Wind</span><span class="value">${st.wind}</span></div>
+            <div class="fc-detail"><span class="label">Vis</span><span class="value">${st.vis}</span></div>
+            <div class="fc-detail"><span class="label">QNH</span><span class="value">${st.qnh}</span></div>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          showToast(`${st.code} — ${st.conditionText} · ${st.temp}°C`, 'fa-cloud-sun');
+          if (liveMap) {
+            const coords = { 'HUEN': [0.0424, 32.4435], 'HKJK': [-1.3192, 36.9278], 'HAAB': [8.9779, 38.7993], 'FAOR': [-26.1392, 28.2460], 'OMDB': [25.2532, 55.3657], 'HUGU': [2.8056, 32.2714] };
+            if (coords[st.code]) {
+              switchPage('map');
+              document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.page === 'map'));
+              setTimeout(() => { liveMap.flyTo(coords[st.code], 8, { duration: 1.5 }); }, 300);
+            }
+          }
+        });
+        forecastGrid.appendChild(card);
+      });
+      document.getElementById('forecastCount').textContent = `${forecastStations.length} stations`;
+
+      // ============================================================
+      // HOURLY STRIP
+      // ============================================================
+      const hourlyStrip = document.getElementById('hourlyStrip');
+      const hours = ['12Z', '15Z', '18Z', '21Z', '00Z', '03Z', '06Z', '09Z'];
+      const icons = ['fa-sun', 'fa-cloud-sun', 'fa-cloud', 'fa-cloud-rain', 'fa-cloud-moon', 'fa-moon', 'fa-cloud-sun', 'fa-sun'];
+      const temps = [26, 28, 27, 24, 22, 21, 20, 24];
+
+      hours.forEach((h, i) => {
+        const item = document.createElement('div');
+        item.className = 'hourly-item';
+        item.innerHTML = `<div class="hr-time">${h}</div><div class="hr-icon"><i class="fas ${icons[i]}"></i></div><div class="hr-temp">${temps[i]}°</div>`;
+        hourlyStrip.appendChild(item);
+      });
+
+      // ============================================================
+      // MANUALS
+      // ============================================================
+      const manualsData = [
+        { id: 'aom', title: 'Aerolink Operations Manual', subtitle: 'Company SOPs & Policies', icon: 'fa-building', tag: 'AOM', revision: 'Rev 12 · Jan 2025', pages: 186, airlineSpecific: true,
+          content: `<h2><i class="fas fa-building"></i> Aerolink Operations Manual</h2><div class="modal-content"><h3>1. Company Overview</h3><ul><li>Founded: <span class="aerolink-highlight">2001</span> in Entebbe, Uganda</li><li>Base: Entebbe International Airport (HUEN)</li><li>Fleet: Cessna Caravan, Beechcraft 1900D, Dash 8 Q400</li></ul><h3>2. Flight Operations</h3><ul><li>Reporting time: 60 min before departure</li><li>Fuel policy: IFR reserves + 30 min final reserve</li></ul><h3>3. Uganda Base Procedures</h3><ul><li>Entebbe (HUEN) is the primary maintenance base</li><li>All domestic flights require UCAA flight plan</li></ul></div>` },
+        { id: 'fcom', title: 'Flight Crew Operating Manual', subtitle: 'Dash 8 Q400 / B1900D', icon: 'fa-book-open', tag: 'FCOM', revision: 'Rev 38 · Feb 2025', pages: 842,
+          content: `<h2><i class="fas fa-book-open"></i> FCOM</h2><div class="modal-content"><h3>Dash 8 Q400</h3><ul><li>Wingspan: <span class="highlight">28.4m</span> · Length: 32.8m</li><li>Engines: PW150A turboprop</li><li>Max Takeoff Weight: <span class="highlight">29,257 kg</span></li></ul><h3>Uganda Terrain Procedures</h3><ul><li>Western Uganda: MSA 12,500 ft</li><li>Lake Victoria approaches: Monitor wind shear</li></ul></div>` },
+        { id: 'qrh', title: 'Quick Reference Handbook', subtitle: 'Non-Normal Checklists', icon: 'fa-bolt', tag: 'QRH', revision: 'Rev 16 · Jan 2025', pages: 214,
+          content: `<h2><i class="fas fa-bolt"></i> QRH</h2><div class="modal-content"><h3>Engine Failures</h3><ul><li>ENG FAIL: Autofeather, identify, secure</li><li>ENG FIRE: Fire handle, discharge bottle</li></ul><h3>Aerolink Specific</h3><ul><li>Entebbe (HUEN): ILS RWY 17 available</li><li>Bush strips: Watch for wildlife</li></ul></div>` },
+        { id: 'mel', title: 'Minimum Equipment List', subtitle: 'Dispatch Requirements', icon: 'fa-clipboard-check', tag: 'MEL', revision: 'Rev 24 · Feb 2025', pages: 168,
+          content: `<h2><i class="fas fa-clipboard-check"></i> MEL</h2><div class="modal-content"><h3>Category A (No Dispatch)</h3><ul><li>Both engine-driven generators inoperative</li><li>Both hydraulic systems inoperative</li></ul><h3>Aerolink Specific</h3><ul><li>All MEL items require UCAA approval</li></ul></div>` },
+        { id: 'fctm', title: 'Flight Crew Training Manual', subtitle: 'Techniques & Procedures', icon: 'fa-graduation-cap', tag: 'FCTM', revision: 'Rev 14 · Dec 2024', pages: 396,
+          content: `<h2><i class="fas fa-graduation-cap"></i> FCTM</h2><div class="modal-content"><h3>Takeoff Techniques</h3><ul><li>Use full runway length when available</li><li>Rotate at VR to 15° nose up</li></ul><h3>Aerolink Uganda Operations</h3><ul><li>Entebbe elevation: <span class="highlight">3,782 ft</span></li><li>Bush strip technique: Soft-field landing</li></ul></div>` },
+        { id: 'aip', title: 'Aeronautical Information Publication', subtitle: 'Uganda & East Africa', icon: 'fa-globe-africa', tag: 'AIP', revision: 'AIRAC 2503 · Mar 2025', pages: 520,
+          content: `<h2><i class="fas fa-globe-africa"></i> AIP</h2><div class="modal-content"><h3>Entebbe International (HUEN)</h3><ul><li>Elevation: 3,782 ft / 1,153 m</li><li>Runways: 17/35 (3,658m × 45m), 12/30 (2,408m × 45m)</li></ul><h3>Other Ugandan Airports</h3><ul><li>Gulu (HUGU) — 3,500 ft</li><li>Mbarara (HUMA) — 3,000 ft</li><li>Kasese (HUKS) — 2,800 ft</li></ul></div>` },
+        { id: 'sop', title: 'Standard Operating Procedures', subtitle: 'Aerolink Uganda', icon: 'fa-list-ol', tag: 'SOP', revision: 'Rev 11 · Feb 2025', pages: 142, airlineSpecific: true,
+          content: `<h2><i class="fas fa-list-ol"></i> SOPs</h2><div class="modal-content"><h3>Pre-Flight</h3><ul><li>Report to dispatch 60 min before departure</li><li>Verify NOTAMs for all Ugandan airports</li></ul><h3>Bush Strip Operations</h3><ul><li>Reconnaissance pass at 500 ft AGL</li><li>Soft-field landing technique</li></ul></div>` }
+      ];
+
+      const manualsGrid = document.getElementById('manualsGrid');
+      manualsData.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'manual-card' + (m.airlineSpecific ? ' airline-specific' : '');
+        card.innerHTML = `
+          <i class="fas ${m.icon} manual-icon"></i>
+          <h3>${m.title}</h3>
+          <p>${m.subtitle} · ${m.pages} pages</p>
+          <div class="manual-meta">
+            <span>${m.revision}</span>
+            <span class="manual-tag">${m.tag}</span>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          modalContent.innerHTML = m.content;
+          modalOverlay.classList.add('active');
+        });
+        manualsGrid.appendChild(card);
+      });
+      document.getElementById('manualCount').textContent = `${manualsData.length} documents`;
+
+      // ============================================================
+      // MODAL
+      // ============================================================
+      const modalOverlay = document.getElementById('modalOverlay');
+      const modalContent = document.getElementById('modalContent');
+      const modalClose = document.getElementById('modalClose');
+
+      modalClose.addEventListener('click', () => modalOverlay.classList.remove('active'));
+      modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('active'); });
+
+      // ============================================================
+      // PAGE SWITCHING
+      // ============================================================
+      const pages = {
+        dashboard: document.getElementById('page-dashboard'),
+        map: document.getElementById('page-map'),
+        forecast: document.getElementById('page-forecast'),
+        manuals: document.getElementById('page-manuals'),
+        admin: document.getElementById('page-admin')
+      };
+
+      function switchPage(pageName) {
+        Object.values(pages).forEach(p => p.classList.remove('active'));
+        if (pages[pageName]) pages[pageName].classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageName));
+        if (pageName === 'map' && liveMap) setTimeout(() => liveMap.invalidateSize(), 100);
+        if (pageName === 'admin') renderAdminTable();
+      }
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.page !== 'admin') {
+          btn.addEventListener('click', () => {
+            switchPage(btn.dataset.page);
+            const labels = { dashboard: 'Dashboard', map: 'Live Map', forecast: 'Live Weather', manuals: 'Aerolink Manuals' };
+            const icons = { dashboard: 'fa-gauge-high', map: 'fa-map', forecast: 'fa-cloud-sun-rain', manuals: 'fa-book' };
+            showToast(`${labels[btn.dataset.page]} view`, icons[btn.dataset.page]);
+          });
+        }
+      });
+
+      // ============================================================
+      // CLOCK
+      // ============================================================
+      const clockEl = document.getElementById('clockDisplay');
+      let utcTime = new Date();
+      utcTime.setUTCHours(7, 45, 0, 0);
+
+      setInterval(() => {
+        utcTime.setUTCSeconds(utcTime.getUTCSeconds() + 1);
+        const h = String(utcTime.getUTCHours()).padStart(2, '0');
+        const m = String(utcTime.getUTCMinutes()).padStart(2, '0');
+        clockEl.innerHTML = `<i class="far fa-clock"></i> ${h}:${m} UTC`;
+      }, 1000);
+
+      // ============================================================
+      // LIVE WEATHER
+      // ============================================================
+      function liveUpdateWeather() {
+        const now = new Date();
+        const d = String(now.getUTCDate()).padStart(2, '0');
+        const h = String(now.getUTCHours()).padStart(2, '0');
+        const mi = String(now.getUTCMinutes()).padStart(2, '0');
+        const windDir = Math.floor(Math.random() * 20) + 260;
+        const windSpd = Math.floor(Math.random() * 8) + 8;
+        const temp = Math.floor(Math.random() * 4) + 24;
+        const dew = Math.floor(Math.random() * 4) + 16;
+        const qnh = Math.floor(Math.random() * 8) + 1010;
+
+        document.getElementById('metarValue').textContent = `HUEN ${d}${h}${mi}Z ${windDir}${String(windSpd).padStart(2,'0')}KT 9999 SCT035 ${temp}/${dew} Q${qnh}`;
+        document.getElementById('windValue').textContent = `${windDir}° / ${windSpd} kt`;
+        document.getElementById('visValue').textContent = `${Math.floor(Math.random() * 5) + 8} km`;
+        document.getElementById('tempValue').textContent = `${temp}°C / ${dew}°C`;
+        document.getElementById('qnhValue').textContent = `${qnh} hPa`;
+
+        const liveWind = document.getElementById('liveWind');
+        if (liveWind) {
+          liveWind.textContent = `${windDir}/${String(windSpd).padStart(2,'0')}`;
+          document.getElementById('liveVis').textContent = `${Math.floor(Math.random() * 5) + 8} km`;
+          document.getElementById('liveQnh').textContent = qnh;
+        }
+      }
+      setInterval(liveUpdateWeather, 15000);
+      liveUpdateWeather();
+
+      document.getElementById('refreshWxBtn').addEventListener('click', () => {
+        liveUpdateWeather();
+        showToast('Live weather refreshed', 'fa-cloud-sun');
+      });
+
+      // ============================================================
+      // FUEL
+      // ============================================================
+      const blockFuelEl = document.getElementById('blockFuel');
+      const tripFuelEl = document.getElementById('tripFuel');
+      const toWeightEl = document.getElementById('toWeight');
+      const vSpeedsEl = document.getElementById('vSpeeds');
+      const cgEl = document.getElementById('cgValue');
+      const fuelProgressBar = document.getElementById('fuelProgressBar');
+      const fuelProgressFill = document.getElementById('fuelProgressFill');
+
+      fuelProgressBar.addEventListener('click', function() {
+        const currentWidth = parseFloat(fuelProgressFill.style.width) || 82;
+        const decrease = Math.random() * 4 + 2;
+        let newWidth = Math.max(10, currentWidth - decrease);
+        const currentBlockFuel = parseFloat(blockFuelEl.textContent) || 14.2;
+        const newBlockFuel = Math.max(1.5, currentBlockFuel - (decrease * 0.1)).toFixed(1);
+        blockFuelEl.textContent = newBlockFuel + ' t';
+        const newTripFuel = (parseFloat(tripFuelEl.textContent) - 0.1).toFixed(1);
+        if (parseFloat(newTripFuel) > 2) tripFuelEl.textContent = newTripFuel + ' t';
+        fuelProgressFill.style.width = newWidth + '%';
+        if (newWidth < 30) fuelProgressFill.style.background = 'linear-gradient(90deg, #b33a3a, #e66b6b)';
+        else if (newWidth < 55) fuelProgressFill.style.background = 'linear-gradient(90deg, #b37b1a, #e6a83c)';
+        else fuelProgressFill.style.background = 'linear-gradient(90deg, #2b8cff, #6aa9ff)';
+        const newTOWeight = (parseFloat(toWeightEl.textContent) - 0.1).toFixed(1);
+        if (parseFloat(newTOWeight) > 50) toWeightEl.textContent = newTOWeight + ' t';
+        const newCG = (parseFloat(cgEl.textContent) - 0.1).toFixed(1);
+        if (parseFloat(newCG) > 20) cgEl.textContent = newCG + '%';
+        const v1 = Math.floor(142 + (Math.random() * 6) - 3);
+        vSpeedsEl.textContent = `${v1} / ${v1+6} / ${v1+11}`;
+        showToast('Aerolink fuel burn simulated', 'fa-gas-pump');
+      });
+
+      // ============================================================
+      // CHECKLIST
+      // ============================================================
+      document.querySelectorAll('.checklist-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const isChecked = this.classList.contains('checked');
+          const icon = this.querySelector('i');
+          const statusSpan = this.querySelector('.task-status');
+          if (isChecked) {
+            this.classList.remove('checked'); this.classList.add('unchecked');
+            icon.className = 'fas fa-clock pending';
+            statusSpan.textContent = 'PENDING';
+            statusSpan.style.background = '#0d1627'; statusSpan.style.color = '#8ba0c2'; statusSpan.style.borderColor = '#2a3e60';
+          } else {
+            this.classList.remove('unchecked'); this.classList.add('checked');
+            icon.className = 'fas fa-check-circle';
+            statusSpan.textContent = 'DONE';
+            statusSpan.style.background = '#1b3a2a'; statusSpan.style.color = '#6fe09a'; statusSpan.style.borderColor = '#2b8e4b';
+          }
+          const allChecked = Array.from(document.querySelectorAll('.checklist-item')).every(el => el.classList.contains('checked'));
+          if (allChecked) showToast('All checklist items complete!', 'fa-check-circle');
+          else showToast(`${this.querySelector('.task-text').textContent.split('...')[0].trim()} toggled`, 'fa-clipboard-list');
+        });
+      });
+
+      // ============================================================
+      // STATUS BADGE
+      // ============================================================
+      document.getElementById('statusBadge').addEventListener('click', function() {
+        if (this.classList.contains('paused')) {
+          this.classList.remove('paused');
+          this.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i> EN ROUTE';
+          showToast('Aerolink status: EN ROUTE', 'fa-plane');
+        } else {
+          this.classList.add('paused');
+          this.innerHTML = '<i class="fas fa-pause-circle" style="font-size: 10px; margin-right: 6px;"></i> HOLDING';
+          showToast('Aerolink status: HOLDING', 'fa-pause-circle');
+        }
+      });
+
+      // ============================================================
+      // ACTION BUTTONS
+      // ============================================================
+      const btnNav = document.getElementById('btnNav');
+      const btnChecklists = document.getElementById('btnChecklists');
+      const btnPerf = document.getElementById('btnPerf');
+      const btnSys = document.getElementById('btnSys');
+      const allActionBtns = [btnNav, btnChecklists, btnPerf, btnSys];
+
+      function setActiveAction(btn) {
+        allActionBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      btnNav.addEventListener('click', () => { switchPage('map'); setActiveAction(btnNav); showToast('Live map view', 'fa-map'); });
+      btnChecklists.addEventListener('click', () => {
+        switchPage('dashboard'); setActiveAction(btnChecklists);
+        document.getElementById('cardChecklist').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('Checklist view active', 'fa-clipboard-list');
+      });
+      btnPerf.addEventListener('click', () => {
+        switchPage('dashboard'); setActiveAction(btnPerf);
+        document.getElementById('cardPerf').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('Performance page', 'fa-chart-pie');
+      });
+      btnSys.addEventListener('click', () => { setActiveAction(btnSys); showToast('Aerolink systems OK — Entebbe base', 'fa-cog'); });
+
+      // ============================================================
+      // BATTERY
+      // ============================================================
+      const batteryLevelEl = document.getElementById('batteryLevel');
+      setInterval(() => {
+        const current = parseInt(batteryLevelEl.textContent);
+        if (current > 20) batteryLevelEl.textContent = (current - 1) + '%';
+      }, 15000);
+
+      // Init
+      renderAdminTable();
+
+    })();
+  </script>
+</body>
+</html>
